@@ -1,0 +1,9 @@
+package xat;
+
+/* Simplifyed ROS Header message
+ */
+struct header_t
+{
+	int32_t seq;		// message sequence number
+	int64_t stamp;		// timestamp in microseconds
+}

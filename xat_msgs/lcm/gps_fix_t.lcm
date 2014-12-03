@@ -1,0 +1,22 @@
+package xat;
+
+/* MAVlink GPS_RAW_INT converted to floating point
+ */
+struct gps_fix_t
+{
+	xat.header_t header;
+
+	const int8_t FIX_TYPE__NO_FIX = 0;
+	const int8_t FIX_TYPE__3D_FIX = 3;
+
+	int8_t fix_type;
+	int8_t satellites_visible;
+
+	double latitude;
+	double longitude;
+	float altitude;
+	float eph;
+	float epv;
+	float ground_speed;
+	float ground_course;
+}
