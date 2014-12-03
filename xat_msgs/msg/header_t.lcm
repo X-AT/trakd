@@ -1,4 +1,4 @@
-package xat;
+package xat_msgs;
 
 /* Simplifyed ROS Header message
  */
