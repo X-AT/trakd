@@ -1,0 +1,10 @@
+language: cpp
+compiler:
+- gcc
+install:
+- wget http://multivax.dlhq.org/packages/x-at/ci-binaries/$LCM_DEB
+- sudo dpkg -i $LCM_DEB
+script:
+- mkdir -p build
+- cd build && cmake ..
+- make
