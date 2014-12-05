@@ -6,4 +6,10 @@
 *.out
 *.swp
 *.jar
+
+# cmake build
 build/*
+CMakeFiles
+CMakeCache.txt
+Makefile
+cmake_install.cmake
