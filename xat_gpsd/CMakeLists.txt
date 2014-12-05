@@ -9,6 +9,7 @@ include(EnableCXX11)
 
 include_directories(
   include
+  ${CMAKE_BINARY_DIR}/include
   ${Boost_INCLUDE_DIRS}
   ${LCM_INCLUDE_DIRS}
 )
