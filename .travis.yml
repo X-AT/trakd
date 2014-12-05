@@ -5,6 +5,11 @@ install:
 # LCM binary (precompiled by me)
 - wget http://multivax.dlhq.org/packages/x-at/ci-binaries/$LCM_DEB
 - sudo dpkg -i $LCM_DEB
+# MAVLink headers (packaged c_library repo)
+- wget http://multivax.dlhq.org/packages/x-at/ci-binaries/$MAVLINK_DEB
+- sudo dpkg -i $MAVLINK_DEB
+# console-bridge
+- sudo apt-get -qq install libconsole-bridge-dev
 # GCC 4.8 for proper C++11
 - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 - sudo apt-get -qq update
