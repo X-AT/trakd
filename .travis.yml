@@ -1,14 +1,15 @@
 language: cpp
 compiler:
-- gcc-4.8
+- gcc
 install:
 # LCM binary (precompiled by me)
 - wget http://multivax.dlhq.org/packages/x-at/ci-binaries/$LCM_DEB
 - sudo dpkg -i $LCM_DEB
 # GCC 4.8 for proper C++11
-#- sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-#- sudo apt-get -qq update
-#- sudo sudo apt-get -qq install g++-4.8
+- sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+- sudo apt-get -qq update
+- sudo sudo apt-get -qq install g++-4.8
+- export CXX="g++-4.8"
 script:
 - mkdir -p build
 - cd build && cmake ..
