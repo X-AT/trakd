@@ -1,0 +1,12 @@
+package xat_msgs;
+
+struct joint_state_t
+{
+	header_t header;
+	boolean in_azimuth_endstop;
+	boolean in_elevator_endstop;
+	int32_t	azimuth_step_cnt;
+	int32_t elevator_step_cnt;
+	float azimuth_angle;
+	float elevator_engle;
+}
