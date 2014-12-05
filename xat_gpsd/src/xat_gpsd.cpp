@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 
 		prev_status = fix.fix_type;
 
-		/* TODO: publish */
+		lcm.publish("xat/home_fix", &fix);
 	}
 
 	return EXIT_SUCCESS;
