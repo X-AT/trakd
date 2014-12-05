@@ -1,0 +1,3 @@
+#!/bin/sh
+classpath=$(pkg-config lcm-java --variable=classpath)
+exec java -server -Xincgc -Xmx128m -Xms64m -ea -cp $classpath:xat_msgs.jar lcm.spy.Spy $*
