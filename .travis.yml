@@ -2,6 +2,11 @@ language: cpp
 compiler:
 - gcc
 install:
+# GCC 4.8 for proper C++11
+- sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+- sudo apt-get -qq update
+- sudo sudo apt-get -qq install g++-4.8
+- export CXX="g++-4.8"
 # LCM binary (precompiled by me)
 - wget http://multivax.dlhq.org/packages/x-at/ci-binaries/$LCM_DEB
 - sudo dpkg -i $LCM_DEB
@@ -9,12 +14,13 @@ install:
 - wget http://multivax.dlhq.org/packages/x-at/ci-binaries/$MAVLINK_DEB
 - sudo dpkg -i $MAVLINK_DEB
 # console-bridge
-- sudo apt-get -qq install libconsole-bridge-dev
-# GCC 4.8 for proper C++11
-- sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-- sudo apt-get -qq update
-- sudo sudo apt-get -qq install g++-4.8
-- export CXX="g++-4.8"
+- sudo apt-get -qq install libboost-all-dev
+- git clone --depth 1 https://github.com/ros/console_bridge.git
+- cd console_bridge && cmake . && make
+- sudo make install
+- cd ..
+# gpsd
+- sudo apt-get -qq install libgps-dev
 script:
 - mkdir -p build
 - cd build && cmake ..
