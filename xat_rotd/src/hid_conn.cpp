@@ -62,6 +62,24 @@ HIDConn::HIDConn(int index) :
 			return false;						\
 	} while (0)
 
+#define DO_SEND_FEATURE_RET(_report_id, _report, _report_type)			\
+	do {									\
+		_report.report_id = _report_id;					\
+		return (hid_send_feature_report(				\
+				handle.get(),					\
+				reinterpret_cast<unsigned char*>(&_report),	\
+				report_size(_report_type)) < 0);		\
+	} while (0)
+
+#define DO_OUTPUT_RET(_report_id, _report, _report_type)			\
+	do {									\
+		_report.report_id = _report_id;					\
+		return (hid_write(						\
+				handle.get(),					\
+				reinterpret_cast<unsigned char*>(&_report),	\
+				report_size(_report_type)) < 0);		\
+	} while (0)
+
 #define NONE
 #define COPY_FROM_CONV(_dest_field, _src_report, _func)				\
 	_dest_field = _func(_src_report._dest_field)
@@ -118,10 +136,24 @@ bool HIDConn::get_Stepper_Settings(report::Stepper_Settings &stepper_settings)
 
 bool HIDConn::set_Stepper_Settings(report::Stepper_Settings &stepper_settings)
 {
+	XAT_Report report;
+
+	COPY_TO_CONV(stepper_settings.azimuth_acceleration, report, le16toh);
+	COPY_TO_CONV(stepper_settings.elevation_acceleration, report, le16toh);
+	COPY_TO_CONV(stepper_settings.azimuth_max_speed, report, le16toh);
+	COPY_TO_CONV(stepper_settings.elevation_max_speed, report, le16toh);
+
+	DO_SEND_FEATURE_RET(XAT_Report::ID_F_STEPPER_SETTINGS, report, stepper_settings);
 }
 
-bool HIDConn::set_Az_El(report::Az_El *az_el)
+bool HIDConn::set_Az_El(report::Az_El &az_el)
 {
+	XAT_Report report;
+
+	COPY_TO_CONV(az_el.azimuth_position, report, le32toh);
+	COPY_TO_CONV(az_el.elevation_position, report, le32toh);
+
+	DO_OUTPUT_RET(XAT_Report::ID_S_AZ_EL, report, az_el);
 }
 
 bool HIDConn::get_QTR(report::QTR &qtr)
@@ -137,9 +169,30 @@ bool HIDConn::get_QTR(report::QTR &qtr)
 
 bool HIDConn::set_QTR(report::QTR &qtr)
 {
+	XAT_Report report;
+
+	COPY_TO_CONV(qtr.azimuth_qtr_raw, report, le16toh);
+	COPY_TO_CONV(qtr.elevation_qtr_raw, report, le16toh);
+
+	DO_SEND_FEATURE_RET(XAT_Report::ID_F_QTR, report, qtr);
+}
+
+bool HIDConn::set_Cur_Position(report::Cur_Position &cur_position)
+{
+	XAT_Report report;
+
+	COPY_TO_CONV(cur_position.azimuth_position, report, le32toh);
+	COPY_TO_CONV(cur_position.elevation_position, report, le32toh);
+
+	DO_SEND_FEATURE_RET(XAT_Report::ID_F_CUR_POSITION, report, cur_position);
 }
 
 bool HIDConn::set_Stop(report::Stop &stop)
 {
+	XAT_Report report;
+
+	COPY_TO_CONV(stop.motor, report, NONE);
+
+	DO_OUTPUT_RET(XAT_Report::ID_S_STOP, report, stop);
 }
 
