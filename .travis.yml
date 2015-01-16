@@ -19,8 +19,8 @@ install:
 - cd console_bridge && cmake . && make
 - sudo make install
 - cd ..
-# gpsd
-- sudo apt-get -qq install libgps-dev
+# gpsd and libudev
+- sudo apt-get -qq install libgps-dev libudev-dev
 script:
 - mkdir -p build
 - cd build && cmake ..
