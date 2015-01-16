@@ -53,9 +53,12 @@ int main(int argc, char *argv[])
 
 	while (lcm.good()) {
 		//xat_hid::report::Info info;
+		//xat_hid::report::Status status;
 		//conn.get_Info(info);
+		//conn.get_Status(status);
 
 		//logInform("info: %s", info.device_caps);
+		//logInform("status: %d %d", status.buttons & 1, status.buttons & 2);
 	}
 
 	hid_exit();

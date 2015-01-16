@@ -13,14 +13,14 @@ public:
 
 	/* -*- report input/output/feauture accessors -*- */
 	bool get_Info(report::Info &info);
-	//bool get_Status(report::Status &status);
-	//bool get_Bat_Voltage(report::Bat_Voltage &bat_voltage);
-	//bool get_Stepper_Settings(report::Stepper_Settings &stepper_settings);
-	//bool set_Stepper_Settings(report::Stepper_Settings &stepper_settings);
-	//bool set_Az_El(report::Az_El *az_el);
-	//bool get_QTR(report::QTR &qtr);
-	//bool set_QTR(report::QTR &qtr);
-	//bool set_Stop(report::Stop &stop);
+	bool get_Status(report::Status &status);
+	bool get_Bat_Voltage(report::Bat_Voltage &bat_voltage);
+	bool get_Stepper_Settings(report::Stepper_Settings &stepper_settings);
+	bool set_Stepper_Settings(report::Stepper_Settings &stepper_settings);
+	bool set_Az_El(report::Az_El *az_el);
+	bool get_QTR(report::QTR &qtr);
+	bool set_QTR(report::QTR &qtr);
+	bool set_Stop(report::Stop &stop);
 
 	/* -*- some simplifyed eccessors -*- */
 	//bool set_Stop(bool az, bool el);

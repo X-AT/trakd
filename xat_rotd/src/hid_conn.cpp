@@ -43,25 +43,103 @@ HIDConn::HIDConn(int index) :
 
 /* -*- report input/output/feauture accessors -*- */
 
+/**
+ * Sends get feature report.
+ *
+ * Retruns from function if failed.
+ *
+ * @param[in] _report_id    report id
+ * @param[in] _report       report buffer
+ * @param[in] _report_type  one of report:: structs
+ */
+#define DO_GET_FEATURE_ERET(_report_id, _report, _report_type)			\
+	do {									\
+		_report.report_id = _report_id;					\
+		if (hid_get_feature_report(					\
+				handle.get(),					\
+				reinterpret_cast<unsigned char*>(&_report),	\
+				report_size(_report_type)) < 0)			\
+			return false;						\
+	} while (0)
+
+#define NONE
+#define COPY_FROM_CONV(_dest_field, _src_report, _func)				\
+	_dest_field = _func(_src_report._dest_field)
+
+#define COPY_TO_CONV(_dest_field, _src_report, _func)				\
+	_src_report._dest_field = _func(_dest_field)
+
+
 bool HIDConn::get_Info(report::Info &info)
 {
 	XAT_Report report{};
 
-	report.report_id = XAT_Report::ID_F_INFO;
-	if (hid_get_feature_report(handle.get(), reinterpret_cast<unsigned char*>(&report), report_size(info)) < 0)
-		return true;
+	DO_GET_FEATURE_ERET(XAT_Report::ID_F_INFO, report, info);
 
 	info = report.info;
 	return true;
 }
 
-//bool get_Status(report::Status &status);
-//bool get_Bat_Voltage(report::Bat_Voltage &bat_voltage);
-//bool get_Stepper_Settings(report::Stepper_Settings &stepper_settings);
-//bool set_Stepper_Settings(report::Stepper_Settings &stepper_settings);
-//bool set_Az_El(report::Az_El *az_el);
-//bool get_QTR(report::QTR &qtr);
-//bool set_QTR(report::QTR &qtr);
-//bool set_Stop(report::Stop &stop);
+bool HIDConn::get_Status(report::Status &status)
+{
+	XAT_Report report{};
 
+	DO_GET_FEATURE_ERET(XAT_Report::ID_G_STATUS, report, status);
+
+	COPY_FROM_CONV(status.flags, report, NONE);
+	COPY_FROM_CONV(status.buttons, report, NONE);
+	COPY_FROM_CONV(status.azimuth_position, report, le32toh);
+	COPY_FROM_CONV(status.elevation_position, report, le32toh);
+	return true;
+}
+
+bool HIDConn::get_Bat_Voltage(report::Bat_Voltage &bat_voltage)
+{
+	XAT_Report report{};
+
+	DO_GET_FEATURE_ERET(XAT_Report::ID_G_BAT_VOLTAGE, report, bat_voltage);
+
+	COPY_FROM_CONV(bat_voltage.raw_adc, report, le16toh);
+	return true;
+}
+
+bool HIDConn::get_Stepper_Settings(report::Stepper_Settings &stepper_settings)
+{
+	XAT_Report report{};
+
+	DO_GET_FEATURE_ERET(XAT_Report::ID_F_STEPPER_SETTINGS, report, stepper_settings);
+
+	COPY_FROM_CONV(stepper_settings.azimuth_acceleration, report, le16toh);
+	COPY_FROM_CONV(stepper_settings.elevation_acceleration, report, le16toh);
+	COPY_FROM_CONV(stepper_settings.azimuth_max_speed, report, le16toh);
+	COPY_FROM_CONV(stepper_settings.elevation_max_speed, report, le16toh);
+	return true;
+}
+
+bool HIDConn::set_Stepper_Settings(report::Stepper_Settings &stepper_settings)
+{
+}
+
+bool HIDConn::set_Az_El(report::Az_El *az_el)
+{
+}
+
+bool HIDConn::get_QTR(report::QTR &qtr)
+{
+	XAT_Report report{};
+
+	DO_GET_FEATURE_ERET(XAT_Report::ID_F_QTR, report, qtr);
+
+	COPY_FROM_CONV(qtr.azimuth_qtr_raw, report, le16toh);
+	COPY_FROM_CONV(qtr.elevation_qtr_raw, report, le16toh);
+	return true;
+}
+
+bool HIDConn::set_QTR(report::QTR &qtr)
+{
+}
+
+bool HIDConn::set_Stop(report::Stop &stop)
+{
+}
 
