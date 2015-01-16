@@ -52,6 +52,10 @@ int main(int argc, char *argv[])
 	xat_hid::HIDConn conn;
 
 	while (lcm.good()) {
+		//xat_hid::report::Info info;
+		//conn.get_Info(info);
+
+		//logInform("info: %s", info.device_caps);
 	}
 
 	hid_exit();

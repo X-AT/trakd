@@ -45,7 +45,14 @@ HIDConn::HIDConn(int index) :
 
 bool HIDConn::get_Info(report::Info &info)
 {
+	XAT_Report report{};
 
+	report.report_id = XAT_Report::ID_F_INFO;
+	if (hid_get_feature_report(handle.get(), reinterpret_cast<unsigned char*>(&report), report_size(info)) < 0)
+		return true;
+
+	info = report.info;
+	return true;
 }
 
 //bool get_Status(report::Status &status);
