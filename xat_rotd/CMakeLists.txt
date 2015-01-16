@@ -11,6 +11,7 @@ pkg_check_modules(libudev REQUIRED libudev)
 include(EnableCXX11)
 
 include_directories(
+  include
   ${CMAKE_BINARY_DIR}/include
   ${Boost_INCLUDE_DIRS}
   ${console_bridge_INCLUDE_DIRS}
@@ -20,11 +21,13 @@ include_directories(
 
 add_executable(xat_rotd
   src/xat_rotd.cpp
+  src/hid-hidraw.c
 )
 target_link_libraries(xat_rotd
   ${Boost_LIBRARIES}
   ${console_bridge_LIBRARIES}
   ${LCM_LIBRARIES}
+  ${libudev_LIBRARIES}
 )
 
 install(TARGETS xat_rotd
