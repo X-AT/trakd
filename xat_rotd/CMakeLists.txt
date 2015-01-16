@@ -23,6 +23,7 @@ include_directories(
 add_executable(xat_rotd
   src/xat_rotd.cpp
   src/hid-hidraw.c
+  src/hid_conn.cpp
 )
 target_link_libraries(xat_rotd
   ${Boost_LIBRARIES}

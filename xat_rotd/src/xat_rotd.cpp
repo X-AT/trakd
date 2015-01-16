@@ -6,6 +6,7 @@
 namespace po = boost::program_options;
 
 #include "hidapi/hidapi.h"
+#include "xat_rotd/hid_conn.h"
 
 
 int main(int argc, char *argv[])
@@ -47,6 +48,8 @@ int main(int argc, char *argv[])
 		logInform("LCM connected.");
 
 	hid_init();
+
+	xat_hid::HIDConn conn;
 
 	while (lcm.good()) {
 	}
