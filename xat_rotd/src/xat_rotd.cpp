@@ -1,16 +1,12 @@
 /* dummy node
  */
 
-#include <boost/program_options.hpp>
-#include <console_bridge/console.h>
-#include <lcm/lcm-cpp.hpp>
-#include <chrono>
+#include "xat/xat.h"
 
 namespace po = boost::program_options;
 
+#include "hidapi/hidapi.h"
 
-class RotWorker {
-};
 
 int main(int argc, char *argv[])
 {
@@ -50,8 +46,11 @@ int main(int argc, char *argv[])
 	else
 		logInform("LCM connected.");
 
+	hid_init();
+
 	while (lcm.good()) {
 	}
 
+	hid_exit();
 	return EXIT_SUCCESS;
 }
