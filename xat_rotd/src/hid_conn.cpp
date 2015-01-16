@@ -196,3 +196,51 @@ bool HIDConn::set_Stop(report::Stop &stop)
 	DO_OUTPUT_RET(XAT_Report::ID_S_STOP, report, stop);
 }
 
+/* -*- some simplifyed eccessors -*- */
+
+bool HIDConn::get_Info(std::string &device_caps)
+{
+	report::Info info;
+
+	if (!get_Info(info))
+		return false;
+
+	// force null termination
+	info.device_caps[sizeof(info.device_caps) - 1] = '\0';
+
+	device_caps = reinterpret_cast<char*>(info.device_caps);
+	return true;
+}
+
+bool HIDConn::get_Bat_Voltage(float &volts)
+{
+	report::Bat_Voltage bat_voltage;
+
+	if (!get_Bat_Voltage(bat_voltage))
+		return false;
+
+	// only for current arduino based prototype
+	// Vref = 5 V, Input diveider 1/3
+	volts = (bat_voltage.raw_adc / 1023.0) * 5.0 * 3.0;
+	return true;
+}
+
+bool HIDConn::set_Az_El(int32_t az, int32_t el)
+{
+	report::Az_El az_el;
+
+	az_el.azimuth_position = az;
+	az_el.elevation_position = el;
+	return set_Az_El(az_el);
+}
+
+bool HIDConn::set_Stop(bool az, bool el)
+{
+	report::Stop stop{};
+
+	if (az)	stop.motor |= report::Stop::MOTOR_AZ;
+	if (el)	stop.motor |= report::Stop::MOTOR_EL;
+
+	return set_Stop(stop);
+}
+

@@ -23,10 +23,11 @@ public:
 	bool set_Cur_Position(report::Cur_Position &cur_position);
 	bool set_Stop(report::Stop &stop);
 
-	/* -*- some simplifyed eccessors -*- */
-	//bool set_Stop(bool az, bool el);
-	//bool get_Bat_Voltage(uint16_t &millivolt);
-	//bool get_Info(std::string &device_caps);
+	/* -*- some simplifyed accessors -*- */
+	bool get_Info(std::string &device_caps);
+	bool get_Bat_Voltage(float &volts);
+	bool set_Az_El(int32_t az, int32_t el);
+	bool set_Stop(bool az, bool el);
 
 private:
 	std::unique_ptr<hid_device, void (*)(hid_device*)> handle;

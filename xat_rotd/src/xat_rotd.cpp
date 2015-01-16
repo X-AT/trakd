@@ -51,14 +51,19 @@ int main(int argc, char *argv[])
 
 	xat_hid::HIDConn conn;
 
-	while (lcm.good()) {
-		//xat_hid::report::Info info;
-		//xat_hid::report::Status status;
-		//conn.get_Info(info);
-		//conn.get_Status(status);
+	std::string device_caps;
+	if (!conn.get_Info(device_caps)) {
+		logError("Wrong respond to Info request!");
+		return EXIT_FAILURE;
+	}
+	else
+		logInform("Device caps: %s", device_caps.c_str());
 
-		//logInform("info: %s", info.device_caps);
-		//logInform("status: %d %d", status.buttons & 1, status.buttons & 2);
+	while (lcm.good()) {
+		float bat_voltage;
+		conn.get_Bat_Voltage(bat_voltage);
+
+		logInform("Vbat: %02.2f", bat_voltage);
 	}
 
 	hid_exit();
