@@ -9,6 +9,9 @@
 namespace po = boost::program_options;
 
 
+class RotWorker {
+};
+
 int main(int argc, char *argv[])
 {
 	bool debug;

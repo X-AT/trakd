@@ -1,11 +1,8 @@
 /* dummy node
  */
 
-#include <boost/program_options.hpp>
-#include <console_bridge/console.h>
-#include <lcm/lcm-cpp.hpp>
+#include "xat/xat.h"
 #include <libgpsmm.h>
-#include <chrono>
 
 #include "xat_msgs/gps_fix_t.hpp"
 
@@ -15,13 +12,6 @@ namespace po = boost::program_options;
 #error Unsupported version of libgps
 #endif
 
-
-inline int64_t header_t_stamp_now()
-{
-	auto ms = std::chrono::time_point_cast<std::chrono::microseconds>(
-			std::chrono::system_clock::now());
-	return ms.time_since_epoch().count();
-}
 
 inline void process_gps(const gps_data_t *data, xat_msgs::gps_fix_t &fix)
 {
@@ -108,7 +98,7 @@ int main(int argc, char *argv[])
 
 	// main loop vars
 	int8_t prev_status = xat_msgs::gps_fix_t::FIX_TYPE__NO_FIX;
-	int32_t header_seq = 0;
+	xat::MsgHeader fix_header;
 
 	while (lcm.good()) {
 		xat_msgs::gps_fix_t fix;
@@ -121,8 +111,7 @@ int main(int argc, char *argv[])
 		auto *data = gps.read();
 
 		/* fill header_t */
-		fix.header.seq = header_seq++;
-		fix.header.stamp = header_t_stamp_now();
+		fix.header = fix_header.next_now();
 
 		if (data == nullptr) {
 			if (prev_status != xat_msgs::gps_fix_t::FIX_TYPE__NO_FIX)
