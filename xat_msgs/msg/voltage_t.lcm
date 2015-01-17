@@ -1,0 +1,5 @@
+package xat_msg;
+
+struct voltage_t {
+	float voltage;
+}

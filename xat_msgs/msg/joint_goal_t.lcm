@@ -4,5 +4,5 @@ struct joint_goal_t
 {
 	header_t header;
 	float azimuth_angle;
-	float elevator_angle;
+	float elevation_angle;
 }

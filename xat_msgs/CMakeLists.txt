@@ -10,6 +10,7 @@ add_message_files(
   gps_fix_t.lcm
   joint_state_t.lcm
   joint_goal_t.lcm
+  voltage_t.lcm
 )
 
 generate_messages()

@@ -24,8 +24,8 @@ struct Status {
 		EL_IN_MOTION	= (1<<1),
 	};
 	enum Buttons {
-		STATUS_BUTTON1	= (1<<0),	// azimuth endstop
-		STATUS_BUTTON2	= (1<<1),
+		AZ_BUTTON	= (1<<0),	// azimuth endstop
+		EL_BUTTON	= (1<<1),
 	};
 
 	uint8_t flags;
