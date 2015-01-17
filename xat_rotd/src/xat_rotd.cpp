@@ -9,6 +9,9 @@
 namespace po = boost::program_options;
 namespace report = xat_hid::report;
 
+#include "xat_msgs/joint_state_t.hpp"
+#include "xat_msgs/voltage_t.hpp"
+
 
 class RotD {
 public:
@@ -33,17 +36,19 @@ public:
 		auto vbat_start = std::chrono::steady_clock::now();
 
 		// initialize
-		if (initiaize() != EXIT_SUCCESS)
+		if (!initiaize())
 			return EXIT_FAILURE;
 
 		while (lcm.good()) {
 			auto now = std::chrono::steady_clock::now();
 
-			publish_status();
+			if (!publish_status())
+				return EXIT_FAILURE;
 
 			if (now - vbat_start > vbat_duration) {
 				vbat_start = now;
-				publish_vbat();
+				if (!publish_vbat())
+					return EXIT_FAILURE;
 			}
 
 			lcm.handleTimeout(80);
@@ -63,6 +68,9 @@ private:
 	report::QTR &qtr_settings;
 
 	std::string device_caps;
+	xat::MsgHeader status_header;
+	xat::MsgHeader vbat_header;
+
 
 	void log_stepper_settings(report::Stepper_Settings &s)
 	{
@@ -96,12 +104,12 @@ private:
 		logDebug("\t\tElevation: %d", s.elevation_position);
 	}
 
-	int initiaize()
+	bool initiaize()
 	{
 		// reading current status
 		if (!conn.get_Info(device_caps)) {
 			logError("Wrong respond to Info request!");
-			return EXIT_FAILURE;
+			return false;
 		}
 		else
 			logInform("Device caps: %s", device_caps.c_str());
@@ -122,16 +130,59 @@ private:
 		conn.set_Stop(true, true);
 
 		// apply new settings
+		logInform("Apply tracking settings");
 		conn.set_QTR(qtr_settings);
 		conn.set_Stepper_Settings(tracking_settings);
+
+		return true;
 	}
 
-	void publish_status()
+	bool publish_status()
 	{
+		using ST = report::Status;
+
+		report::Status status;
+		if (!conn.get_Status(status)) {
+			logError("Status: communication error");
+			return false;
+		}
+
+		xat_msgs::joint_state_t js;
+
+		js.header = status_header.next_now();
+
+		// flags
+		js.homing_in_proc = false;
+		js.azimuth_in_motion = status.flags & ST::AZ_IN_MOTION;
+		js.elevation_in_motion = status.flags & ST::EL_IN_MOTION;
+		js.in_azimuth_endstop = status.buttons & ST::AZ_BUTTON;
+		js.in_elevation_endstop = status.buttons & ST::EL_BUTTON;
+
+		// position
+		js.azimuth_step_cnt = status.azimuth_position;
+		js.elevation_step_cnt = status.elevation_position;
+		js.azimuth_angle = 1080.0;
+		js.elevation_angle = 3080.0;
+
+		lcm.publish("xat/rot_status", &js);
+		return true;
 	}
 
-	void publish_vbat()
+	bool publish_vbat()
 	{
+		float bat_voltage;
+		if (!conn.get_Bat_Voltage(bat_voltage)) {
+			logError("Vbat: communication error");
+			return false;
+		}
+
+		xat_msgs::voltage_t v;
+
+		v.header = vbat_header.next_now();
+		v.voltage = bat_voltage;
+
+		lcm.publish("xat/bat_voltage", &v);
+		return true;
 	}
 };
 
