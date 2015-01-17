@@ -65,7 +65,7 @@ HIDConn::HIDConn(int index) :
 #define DO_SEND_FEATURE_RET(_report_id, _report, _report_type)			\
 	do {									\
 		_report.report_id = _report_id;					\
-		return (hid_send_feature_report(				\
+		return !(hid_send_feature_report(				\
 				handle.get(),					\
 				reinterpret_cast<unsigned char*>(&_report),	\
 				report_size(_report_type)) < 0);		\
@@ -74,7 +74,7 @@ HIDConn::HIDConn(int index) :
 #define DO_OUTPUT_RET(_report_id, _report, _report_type)			\
 	do {									\
 		_report.report_id = _report_id;					\
-		return (hid_write(						\
+		return !(hid_write(						\
 				handle.get(),					\
 				reinterpret_cast<unsigned char*>(&_report),	\
 				report_size(_report_type)) < 0);		\
