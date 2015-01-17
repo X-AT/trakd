@@ -3,6 +3,7 @@ package xat_msgs;
 struct joint_state_t
 {
 	header_t header;
+	boolean homing_in_proc;
 	boolean azimuth_in_motion;
 	boolean elevation_in_motion;
 	boolean in_azimuth_endstop;
@@ -10,5 +11,5 @@ struct joint_state_t
 	int32_t	azimuth_step_cnt;
 	int32_t elevation_step_cnt;
 	float azimuth_angle;
-	float elevation_engle;
+	float elevation_angle;
 }
