@@ -82,8 +82,11 @@ macro(generate_messages)
     message(STATUS "processing: ${msg} ${target}")
     add_custom_command(
       OUTPUT ${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${msg_ws}.hpp
+      OUTPUT ${CMAKE_BINARY_DIR}/lua/${PROJECT_NAME}/${msg_ws}.lua
       COMMAND mkdir -p ${CMAKE_BINARY_DIR}/include
       COMMAND ${LCM_GEN} --cpp-hpath ${CMAKE_BINARY_DIR}/include --cpp ${msg}
+      COMMAND mkdir -p ${CMAKE_BINARY_DIR}/lua
+      COMMAND ${LCM_GEN} --lpath ${CMAKE_BINARY_DIR}/lua --lua ${msg}
       DEPENDS ${msg}
       )
     add_custom_target(gencpp-${PROJECT_NAME}-${msg_ws} ALL DEPENDS ${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${msg_ws}.hpp)
