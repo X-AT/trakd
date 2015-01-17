@@ -11,6 +11,8 @@ namespace po = boost::program_options;
 namespace report = xat_hid::report;
 
 #include "xat_msgs/joint_state_t.hpp"
+#include "xat_msgs/joint_goal_t.hpp"
+#include "xat_msgs/command_t.hpp"
 #include "xat_msgs/voltage_t.hpp"
 
 
@@ -102,6 +104,9 @@ public:
 		// initialize
 		if (!initiaize())
 			return EXIT_FAILURE;
+
+		lcm.subscribe("xat/command", &RotD::handle_command, this);
+		lcm.subscribe("xat/rot_goal", &RotD::handle_joint_goal, this);
 
 		while (lcm.good()) {
 			auto now = std::chrono::steady_clock::now();
@@ -260,6 +265,48 @@ private:
 
 		lcm.publish("xat/bat_voltage", &v);
 		return true;
+	}
+
+	void handle_joint_goal(
+			const lcm::ReceiveBuffer *rbuf,
+			const std::string &chan,
+			const xat_msgs::joint_goal_t *goal)
+	{
+		report::Az_El az_el;
+		az_el.azimuth_position = az_motor_spec.to_steps(goal->azimuth_angle);
+		az_el.elevation_position = el_motor_spec.to_steps(goal->elevation_angle);
+
+		logDebug("Got goal: #%04d time: %d", goal->header.seq, goal->header.stamp);
+		logDebug("Goal angles: Az: %0.6f El: %0.6f", goal->azimuth_angle, goal->elevation_angle);
+		logDebug("Goal steps:  Az: %+07d El: %+07d", az_el.azimuth_position, az_el.elevation_position);
+
+		if (!conn.set_Az_El(az_el))
+			logError("Set Az_El: communication error!");
+	}
+
+	void handle_command(
+			const lcm::ReceiveBuffer *rbuf,
+			const std::string &chan,
+			const xat_msgs::command_t *cmd)
+	{
+		using CM = xat_msgs::command_t;
+
+		logDebug("Got command: %d #%04d time: %d", cmd->command, cmd->header.seq, cmd->header.stamp);
+
+		switch (cmd->command) {
+		case CM::START_HOMING:
+		case CM::STOP_HOMING:
+			logWarn("Homnig not implemented now!");
+			break;
+
+		case CM::MOTOR_STOP:
+			logInform("Reqested to stop motors.");
+			if (!conn.set_Stop(true, true))
+				logError("Stop failed: communication error!");
+			else
+				logInform("Stop OK.");
+			break;
+		};
 	}
 };
 

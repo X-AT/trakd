@@ -11,6 +11,7 @@ add_message_files(
   joint_state_t.lcm
   joint_goal_t.lcm
   voltage_t.lcm
+  command_t.lcm
 )
 
 generate_messages()

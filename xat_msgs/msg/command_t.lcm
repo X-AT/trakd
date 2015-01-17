@@ -1,0 +1,11 @@
+package xat_msgs;
+
+struct command_t {
+	const int32_t
+		START_HOMING	= 100,
+		STOP_HOMING	= 101,
+		MOTOR_STOP	= 200;
+
+	header_t header;
+	int32_t command;
+}
