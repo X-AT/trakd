@@ -111,7 +111,7 @@ public:
 		while (lcm.good()) {
 			auto now = std::chrono::steady_clock::now();
 
-			if (!publish_status())
+			if (!publish_state())
 				return EXIT_FAILURE;
 
 			if (now - vbat_start > vbat_duration) {
@@ -141,7 +141,7 @@ private:
 
 	std::string device_caps;
 	report::Status last_status;
-	xat::MsgHeader status_header;
+	xat::MsgHeader state_header;
 	xat::MsgHeader vbat_header;
 
 
@@ -220,7 +220,7 @@ private:
 		return true;
 	}
 
-	bool publish_status()
+	bool publish_state()
 	{
 		using ST = report::Status;
 
@@ -231,14 +231,14 @@ private:
 
 		xat_msgs::joint_state_t js;
 
-		js.header = status_header.next_now();
+		js.header = state_header.next_now();
 
 		// flags
 		js.homing_in_proc = false;
 		js.azimuth_in_motion = last_status.flags & ST::AZ_IN_MOTION;
 		js.elevation_in_motion = last_status.flags & ST::EL_IN_MOTION;
-		js.in_azimuth_endstop = last_status.buttons & ST::AZ_BUTTON;
-		js.in_elevation_endstop = last_status.buttons & ST::EL_BUTTON;
+		js.azimuth_in_endstop = last_status.buttons & ST::AZ_BUTTON;
+		js.elevation_in_endstop = last_status.buttons & ST::EL_BUTTON;
 
 		// position
 		js.azimuth_step_cnt = last_status.azimuth_position;
@@ -246,7 +246,7 @@ private:
 		js.azimuth_angle = az_motor_spec.to_rad(last_status.azimuth_position);
 		js.elevation_angle = el_motor_spec.to_rad(last_status.elevation_position);
 
-		lcm.publish("xat/rot_status", &js);
+		lcm.publish("xat/rot_state", &js);
 		return true;
 	}
 
