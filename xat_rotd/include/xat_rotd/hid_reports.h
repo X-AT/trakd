@@ -72,8 +72,11 @@ struct Stop {
 }; // namespace report
 
 enum XAT_USB_ID {
-	XAT_VID = 0x03EB,
-	XAT_PID = 0x204F,
+	XAT_VID_OLD = 0x03EB,
+	XAT_PID_OLD = 0x204F,
+	// Thanks to OpenMoko Inc
+	XAT_VID = 0x1d50,
+	XAT_PID = 0x60c3,
 };
 
 struct XAT_Report {
