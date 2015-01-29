@@ -1,0 +1,7 @@
+# Udev rules for X-AT rot control board
+
+# X-AT arduino board (libusb)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="60c3", MODE="0666"
+
+# X-AT arduino board (hidraw)
+KERNEL=="hidraw*", ATTRS{busnum}=="1", ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="60c3", MODE="0666"
