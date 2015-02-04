@@ -27,6 +27,7 @@ public:
 	bool get_Info(std::string &device_caps);
 	bool get_Bat_Voltage(float &volts);
 	bool set_Az_El(int32_t az, int32_t el);
+	bool set_Cur_Position(int32_t az, int32_t el);
 	bool set_Stop(bool az, bool el);
 
 private:

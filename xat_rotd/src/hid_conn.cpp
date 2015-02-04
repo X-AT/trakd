@@ -234,6 +234,15 @@ bool HIDConn::set_Az_El(int32_t az, int32_t el)
 	return set_Az_El(az_el);
 }
 
+bool HIDConn::set_Cur_Position(int32_t az, int32_t el)
+{
+	report::Cur_Position cur_position;
+
+	cur_position.azimuth_position = az;
+	cur_position.elevation_position = el;
+	return set_Cur_Position(cur_position);
+}
+
 bool HIDConn::set_Stop(bool az, bool el)
 {
 	report::Stop stop{};

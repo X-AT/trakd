@@ -91,7 +91,8 @@ public:
 		az_motor_spec(az_motor_spec_),
 		el_motor_spec(el_motor_spec_),
 
-		device_caps{}
+		device_caps{},
+		homing_state(HM_IDLE)
 	{ };
 
 	int run()
@@ -120,6 +121,9 @@ public:
 					return EXIT_FAILURE;
 			}
 
+			if (homing_state != HM_IDLE)
+				homing_proc();
+
 			lcm.handleTimeout(80);
 
 			auto end_time = now + read_duration;
@@ -140,10 +144,22 @@ private:
 	StepperSpec &el_motor_spec;
 
 	std::string device_caps;
-	report::Status last_status;
 	xat::MsgHeader state_header;
 	xat::MsgHeader vbat_header;
+	xat_msgs::joint_state_t joint_state;
 
+	// Homing proc data
+	enum {
+		HM_IDLE,
+		HM_INITIALIZE,
+		HM_HOMING,
+		HM_REVERT_SETTIGS
+	} homing_state;
+	bool az_in_home;
+	bool el_in_home;
+	int az_home_n;
+	int el_home_n;
+	report::Az_El homing_az_el;
 
 	void log_stepper_settings(report::Stepper_Settings &s)
 	{
@@ -224,7 +240,8 @@ private:
 	{
 		using ST = report::Status;
 
-		if (!conn.get_Status(last_status)) {
+		report::Status status;
+		if (!conn.get_Status(status)) {
 			logError("Status: communication error");
 			return false;
 		}
@@ -234,18 +251,19 @@ private:
 		js.header = state_header.next_now();
 
 		// flags
-		js.homing_in_proc = false;
-		js.azimuth_in_motion = last_status.flags & ST::AZ_IN_MOTION;
-		js.elevation_in_motion = last_status.flags & ST::EL_IN_MOTION;
-		js.azimuth_in_endstop = last_status.buttons & ST::AZ_BUTTON;
-		js.elevation_in_endstop = last_status.buttons & ST::EL_BUTTON;
+		js.homing_in_proc = homing_state != HM_IDLE;
+		js.azimuth_in_motion = status.flags & ST::AZ_IN_MOTION;
+		js.elevation_in_motion = status.flags & ST::EL_IN_MOTION;
+		js.azimuth_in_endstop = status.buttons & ST::AZ_BUTTON;
+		js.elevation_in_endstop = status.buttons & ST::EL_BUTTON;
 
 		// position
-		js.azimuth_step_cnt = last_status.azimuth_position;
-		js.elevation_step_cnt = last_status.elevation_position;
-		js.azimuth_angle = az_motor_spec.to_rad(last_status.azimuth_position);
-		js.elevation_angle = el_motor_spec.to_rad(last_status.elevation_position);
+		js.azimuth_step_cnt = status.azimuth_position;
+		js.elevation_step_cnt = status.elevation_position;
+		js.azimuth_angle = az_motor_spec.to_rad(status.azimuth_position);
+		js.elevation_angle = el_motor_spec.to_rad(status.elevation_position);
 
+		joint_state = js;
 		lcm.publish("xat/rot_state", &js);
 		return true;
 	}
@@ -272,6 +290,11 @@ private:
 			const std::string &chan,
 			const xat_msgs::joint_goal_t *goal)
 	{
+		if (homing_state != HM_IDLE) {
+			logWarn("In homing procedure. Goal #%04d ignored.", goal->header.stamp);
+			return;
+		}
+
 		report::Az_El az_el;
 		az_el.azimuth_position = az_motor_spec.to_steps(goal->azimuth_angle);
 		az_el.elevation_position = el_motor_spec.to_steps(goal->elevation_angle);
@@ -295,18 +318,160 @@ private:
 
 		switch (cmd->command) {
 		case CM::START_HOMING:
+			homing_start();
+			break;
+
 		case CM::STOP_HOMING:
-			logWarn("Homnig not implemented now!");
+			homing_stop();
 			break;
 
 		case CM::MOTOR_STOP:
 			logInform("Reqested to stop motors.");
+			homing_stop();
 			if (!conn.set_Stop(true, true))
 				logError("Stop failed: communication error!");
 			else
 				logInform("Stop OK.");
 			break;
 		};
+	}
+
+	void homing_start()
+	{
+		if (homing_state != HM_IDLE)
+			return;
+
+		logInform("Starting homing procedure.");
+
+		homing_state = HM_INITIALIZE;
+		conn.set_Stop(true, true);
+	}
+
+	void homing_stop()
+	{
+		if (homing_state == HM_IDLE)
+			return;
+
+		logWarn("Required to stop homing!");
+		logInform("Restore tracker settings");
+		log_stepper_settings(tracking_settings);
+
+		homing_state = HM_IDLE;
+		conn.set_Stop(true, true);
+		conn.set_Stepper_Settings(tracking_settings);
+	}
+
+	void homing_proc()
+	{
+		switch (homing_state) {
+		case HM_INITIALIZE:
+			homing_initialize();
+			break;
+
+		case HM_HOMING:
+			homing_homing();
+			break;
+
+		case HM_REVERT_SETTIGS:
+			homing_revert_settings();
+			break;
+		}
+	}
+
+	// Goal: stop and reset position to 0
+	void homing_initialize()
+	{
+		// if one axis in motion: wait when it stops
+		if (joint_state.azimuth_in_motion || joint_state.elevation_in_motion)
+			return;
+
+		logInform("Apply homing settings");
+		log_stepper_settings(homing_settings);
+
+		// stopped, reset position, apply homing settings
+		conn.set_Cur_Position(0, 0);
+		conn.set_Stepper_Settings(homing_settings);
+
+		// init vars
+		az_in_home = false;
+		el_in_home = false;
+		az_home_n = 1;
+		el_home_n = 1;
+
+		// do homing
+		homing_state = HM_HOMING;
+	}
+
+	// Goal: find home and stay in that position
+	void homing_homing()
+	{
+		// azimuth checks
+		if (joint_state.azimuth_in_endstop) {
+			// in endstop
+			homing_az_el.azimuth_position = joint_state.azimuth_step_cnt;
+			az_in_home = true;
+		}
+		if (!joint_state.azimuth_in_motion && !az_in_home) {
+			float ang = az_home_n * M_PI;
+			if (az_home_n % 2)	ang = -ang;
+			az_home_n++;
+
+			// limit to one shaft revolution
+			if (fabsf(ang) > 2 * M_PI) {
+				ang = (ang < 0)? -2 * M_PI : 2 * M_PI;
+				logWarn("Homing: reach azimuth angle limit!");
+			}
+
+			homing_az_el.azimuth_position = az_motor_spec.to_steps(ang);
+		}
+
+		// elevation checks
+		if (joint_state.elevation_in_endstop) {
+			// in endstop
+			homing_az_el.elevation_position = joint_state.elevation_step_cnt;
+			el_in_home = true;
+		}
+		if (!joint_state.elevation_in_motion && !el_in_home) {
+			float ang = el_home_n * M_PI;
+			if (el_home_n % 2)	ang = -ang;
+			el_home_n++;
+
+			// limit to one shaft revolution
+			if (fabsf(ang) > 2 * M_PI) {
+				ang = (ang < 0)? -2 * M_PI : 2 * M_PI;
+				logWarn("Homing: reach elevation angle limit!");
+			}
+
+			homing_az_el.elevation_position = el_motor_spec.to_steps(ang);
+		}
+
+		// apply positions
+		logDebug("Homing: set az: %+07d el: %+07d",
+				homing_az_el.azimuth_position,
+				homing_az_el.elevation_position);
+		conn.set_Az_El(homing_az_el);
+
+		if (az_in_home && el_in_home)
+			homing_state = HM_REVERT_SETTIGS;
+	}
+
+	// Goal: reset position and restore settings. Done.
+	void homing_revert_settings()
+	{
+		// if one axis in motion: wait when it stops
+		if (joint_state.azimuth_in_motion || joint_state.elevation_in_motion)
+			return;
+
+		logInform("Homing done.");
+		logInform("Revert tracking settings");
+		log_stepper_settings(tracking_settings);
+
+		// stopped, reset position, apply homing settings
+		conn.set_Cur_Position(0, 0);
+		conn.set_Stepper_Settings(tracking_settings);
+
+		// done
+		homing_state = HM_IDLE;
 	}
 };
 
@@ -337,10 +502,10 @@ int main(int argc, char *argv[])
 		("tr-az-msp", po::value(&tracking_settings.azimuth_max_speed)->default_value(200), "Tracking azimuth maximum speed")
 		("tr-el-msp", po::value(&tracking_settings.elevation_max_speed)->default_value(200), "Tracking elevation maximum speed")
 
-		("hm-az-acc", po::value(&homing_settings.azimuth_acceleration)->default_value(50), "Homing azimuth acceleration")
-		("hm-el-acc", po::value(&homing_settings.elevation_acceleration)->default_value(50), "Homing elevation acceleration")
-		("hm-az-msp", po::value(&homing_settings.azimuth_max_speed)->default_value(200), "Homing azimuth maximum speed")
-		("hm-el-msp", po::value(&homing_settings.elevation_max_speed)->default_value(200), "Homing elevation maximum speed")
+		("hm-az-acc", po::value(&homing_settings.azimuth_acceleration)->default_value(100), "Homing azimuth acceleration")
+		("hm-el-acc", po::value(&homing_settings.elevation_acceleration)->default_value(100), "Homing elevation acceleration")
+		("hm-az-msp", po::value(&homing_settings.azimuth_max_speed)->default_value(100), "Homing azimuth maximum speed")
+		("hm-el-msp", po::value(&homing_settings.elevation_max_speed)->default_value(100), "Homing elevation maximum speed")
 
 		("az-qtr", po::value(&qtr_settings.azimuth_qtr_raw)->default_value(512), "Azimuth endstop threshold level")
 		("el-qtr", po::value(&qtr_settings.elevation_qtr_raw)->default_value(512), "Elevation endstop threshold level")
