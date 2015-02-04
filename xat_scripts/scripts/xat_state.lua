@@ -26,6 +26,10 @@ function handler_joint_state(channel, data)
 		msg.azimuth_angle, msg.azimuth_step_cnt, az_estop))
 	print(string.format("Elevation: %3.6f rad (%+7d) %s",
 		msg.elevation_angle, msg.elevation_step_cnt, el_estop))
+
+	if msg.homing_in_proc then
+		print("HOMING IN PROCESS")
+	end
 end
 
 lc = lcm.lcm.new()
