@@ -21,6 +21,8 @@ install:
 - cd ..
 # gpsd and libudev
 - sudo apt-get -qq install libgps-dev libudev-dev
+# valac
+- sudo apt-get -qq install valac
 script:
 - mkdir -p build
 - cd build && cmake ..
