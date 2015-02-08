@@ -41,7 +41,7 @@ add_executable(xat_rotd_vala
 target_link_libraries(xat_rotd_vala
   hidapi-hidraw
   ${LCM_LIBRARIES}
-  ${glib2_INCLUDE_DIRS}
+  ${glib2_LIBRARIES}
 )
 
 install(TARGETS xat_rotd_vala hidapi-hidraw
