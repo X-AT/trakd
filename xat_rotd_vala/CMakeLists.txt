@@ -10,11 +10,14 @@ pkg_check_modules(libudev REQUIRED libudev)
 include(UseVala)
 
 vala_precompile(VALA_C
-  src/rotd.vala
+  #src/rotd.vala
+  src/test-hidapi.vala
 PACKAGES
   posix
+  hidapi
 OPTIONS
   --thread
+  --vapidir=${CMAKE_CURRENT_SOURCE_DIR}/vapi
 )
 
 include_directories(
