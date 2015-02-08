@@ -68,7 +68,7 @@ gint _vala_main (gchar** args, int args_length1) {
 	testdatamesg_length1 = 5;
 	_testdatamesg_size_ = testdatamesg_length1;
 	_tmp1_ = stdout;
-	fprintf (_tmp1_, "testing vapi for LCM %d.%d.%d\n", (gint) LCM_MAJOR_VERSION, (gint) LCM_MINOR_VERIOSN, (gint) LCM_MICRO_VERSION);
+	fprintf (_tmp1_, "testing vapi for LCM %d.%d.%d\n", (gint) LCM_MAJOR_VERSION, (gint) LCM_MINOR_VERSION, (gint) LCM_MICRO_VERSION);
 	_tmp2_ = lcm_create (NULL);
 	lcm = _tmp2_;
 	_tmp3_ = lcm_get_fileno (lcm);
