@@ -7,12 +7,11 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include <lcm.h>
+#include <lcm/lcm.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-#define _lcm_subscription_unref0(var) ((var == NULL) ? NULL : (var = (lcm_subscription_unref (var), NULL)))
 #define _lcm_destroy0(var) ((var == NULL) ? NULL : (var = (lcm_destroy (var), NULL)))
 
 
@@ -42,27 +41,23 @@ static void _topic_cb_lcm_msg_handler_t (lcm_recv_buf_t* rbuf, const gchar* chan
 }
 
 
-static gpointer _lcm_subscription_ref0 (gpointer self) {
-	return self ? lcm_subscription_ref (self) : NULL;
-}
-
-
 gint _vala_main (gchar** args, int args_length1) {
 	gint result = 0;
 	gint64* testdatamesg = NULL;
 	gint64* _tmp0_ = NULL;
 	gint testdatamesg_length1 = 0;
 	gint _testdatamesg_size_ = 0;
+	FILE* _tmp1_ = NULL;
 	lcm_t* lcm = NULL;
-	lcm_t* _tmp1_ = NULL;
+	lcm_t* _tmp2_ = NULL;
 	gint fn = 0;
-	gint _tmp2_ = 0;
-	FILE* _tmp3_ = NULL;
+	gint _tmp3_ = 0;
+	FILE* _tmp4_ = NULL;
 	lcm_subscription_t* sub = NULL;
-	lcm_subscription_t* _tmp4_ = NULL;
 	lcm_subscription_t* _tmp5_ = NULL;
 	FILE* _tmp6_ = NULL;
 	FILE* _tmp7_ = NULL;
+	FILE* _tmp8_ = NULL;
 	_tmp0_ = g_new0 (gint64, 5);
 	_tmp0_[0] = 0xd00dfeedLL;
 	_tmp0_[1] = 0xdeeadbeefLL;
@@ -72,14 +67,15 @@ gint _vala_main (gchar** args, int args_length1) {
 	testdatamesg = _tmp0_;
 	testdatamesg_length1 = 5;
 	_testdatamesg_size_ = testdatamesg_length1;
-	_tmp1_ = lcm_create (NULL);
-	lcm = _tmp1_;
-	_tmp2_ = lcm_get_fileno (lcm);
-	fn = _tmp2_;
-	_tmp3_ = stdout;
-	fprintf (_tmp3_, "lcm fileno: %d\n", fn);
-	_tmp4_ = lcm_subscribe (lcm, "test_topic\n", _topic_cb_lcm_msg_handler_t, NULL);
-	_tmp5_ = _lcm_subscription_ref0 (_tmp4_);
+	_tmp1_ = stdout;
+	fprintf (_tmp1_, "testing vapi for LCM %d.%d.%d\n", (gint) LCM_MAJOR_VERSION, (gint) LCM_MINOR_VERIOSN, (gint) LCM_MICRO_VERSION);
+	_tmp2_ = lcm_create (NULL);
+	lcm = _tmp2_;
+	_tmp3_ = lcm_get_fileno (lcm);
+	fn = _tmp3_;
+	_tmp4_ = stdout;
+	fprintf (_tmp4_, "lcm fileno: %d\n", fn);
+	_tmp5_ = lcm_subscribe (lcm, "test_topic", _topic_cb_lcm_msg_handler_t, NULL);
 	sub = _tmp5_;
 	_tmp6_ = stdout;
 	fprintf (_tmp6_, "try to publish message\n");
@@ -89,9 +85,11 @@ gint _vala_main (gchar** args, int args_length1) {
 	lcm_handle (lcm);
 	lcm_publish (lcm, "test_topic", (void*) testdatamesg, (testdatamesg_length1 * sizeof (gint64)) / sizeof (void));
 	lcm_handle_timeout (lcm, 1000);
+	_tmp8_ = stdout;
+	fprintf (_tmp8_, "set_queue_capacity\n");
+	lcm_subscription_set_queue_capacity (sub, 100);
 	lcm_unsubscribe (lcm, sub);
 	result = 0;
-	_lcm_subscription_unref0 (sub);
 	_lcm_destroy0 (lcm);
 	testdatamesg = (g_free (testdatamesg), NULL);
 	return result;

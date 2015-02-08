@@ -13,6 +13,9 @@ int main(string[] args)
 {
 	int64[] testdatamesg = { 0xd00dfeed, 0xdeeadbeef, 0xeeeeeeee, 0xffff0000, 0x5a5aa5a5 };
 
+	// hello
+	stdout.printf("testing vapi for LCM %d.%d.%d\n", lcm.Version.MAJOR, lcm.Version.MINOR, lcm.Version.MICRO);
+
 	// create object
 	var lcm = new LCM(null);
 
@@ -21,7 +24,7 @@ int main(string[] args)
 	stdout.printf("lcm fileno: %d\n", fn);
 
 	// make subscription
-	var sub = lcm.subscribe("test_topic\n", topic_cb);
+	unowned Subscription sub = lcm.subscribe("test_topic", topic_cb);
 
 	// publish
 	stdout.printf("try to publish message\n");
@@ -33,6 +36,10 @@ int main(string[] args)
 
 	lcm.publish("test_topic", (void[])testdatamesg);
 	lcm.handle_timeout(1000);
+
+	// change queue
+	stdout.printf("set_queue_capacity\n");
+	sub.set_queue_capacity(100);
 
 	lcm.unsubscribe(sub);
 
