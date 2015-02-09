@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(xat_msgs C)
+project(xat_rotd C)
 
 find_package(PkgConfig)
 find_package(LCM REQUIRED)
@@ -12,8 +12,10 @@ include(UseVala)
 
 vala_precompile(VALA_C
   src/rotd.vala
+  src/hid_conn.vala
 PACKAGES
   posix
+  glib-2.0
   hidapi
 OPTIONS
   --thread
@@ -39,7 +41,7 @@ add_executable(xat_rotd_vala
 )
 target_link_libraries(xat_rotd_vala
   hidapi-hidraw
-  #${LCM_LIBRARIES}
+  ${LCM_LIBRARIES}
   ${gobject2_LIBRARIES}
 )
 
