@@ -30,18 +30,24 @@ namespace XatHid {
 			public uint8 device_caps[60];
 			//! @}
 
-			//public string device_caps_str {
-			//	get { return "" }
-			//}
+			public string device_caps_str {
+				get {
+					this.device_caps[59] = '\0';
+					return (string) this.device_caps;
+				}
+			}
 
 			public void decode(uint8[] report) {
 				// XXX TODO
 			}
 
 			public uint8[] encode() {
-				// XXX TODO
+				var buf = new uint8[REPORT_SIZE];
 
-				return new uint8[REPORT_SIZE];
+				encode_uint8(buf, 0, report_id);
+				// only report id for RO
+
+				return buf;
 			}
 		}
 
@@ -93,9 +99,12 @@ namespace XatHid {
 			}
 
 			public uint8[] encode() {
-				// XXX TODO
+				var buf = new uint8[REPORT_SIZE];
 
-				return new uint8[REPORT_SIZE];
+				encode_uint8(buf, 0, report_id);
+				// only report id for RO
+
+				return buf;
 			}
 
 		}
@@ -113,8 +122,11 @@ namespace XatHid {
 			//! @}
 
 			public float battery_voltage {
-				// XXX compute actual value
-				get { return 0.0f; }
+				get {
+					// only for current arduino based prototype
+					// Vref = 5 V, Input divider 1/3
+					return (this.raw_adc / 1023.0f) * 5.0f * 3.0f;
+				}
 			}
 
 			public void decode(uint8[] report) {
@@ -122,9 +134,12 @@ namespace XatHid {
 			}
 
 			public uint8[] encode() {
-				// XXX TODO
+				var buf = new uint8[REPORT_SIZE];
 
-				return new uint8[REPORT_SIZE];
+				encode_uint8(buf, 0, report_id);
+				// only report id for RO
+
+				return buf;
 			}
 		}
 
@@ -148,9 +163,16 @@ namespace XatHid {
 			}
 
 			public uint8[] encode() {
-				// XXX TODO
+				var buf = new uint8[REPORT_SIZE];
+				size_t off = 0;
 
-				return new uint8[REPORT_SIZE];
+				encode_uint8 (buf, off, report_id);		off += sizeof(uint8);
+				encode_uint16(buf, off, azimuth_acceleration);	off += sizeof(uint16);
+				encode_uint16(buf, off, elevation_acceleration);off += sizeof(uint16);
+				encode_uint16(buf, off, azimuth_max_speed);	off += sizeof(uint16);
+				encode_uint16(buf, off, elevation_max_speed);
+
+				return buf;
 			}
 		}
 
@@ -172,9 +194,14 @@ namespace XatHid {
 			}
 
 			public uint8[] encode() {
-				// XXX TODO
+				var buf = new uint8[REPORT_SIZE];
+				size_t off = 0;
 
-				return new uint8[REPORT_SIZE];
+				encode_uint8(buf, off, report_id);		off += sizeof(uint8);
+				encode_int32(buf, off, azimuth_position);	off += sizeof(int32);
+				encode_int32(buf, off, elevation_position);
+
+				return buf;
 			}
 		}
 
@@ -184,7 +211,7 @@ namespace XatHid {
 
 		/**
 		 * Set current stepper positions. WO,F.
-		 * Use only when motors is stopped.
+		 * Use only when motors is stopped!
 		 */
 		public class CurPosition : IReport {
 			public const uint8 REPORT_ID = 7;
@@ -201,9 +228,14 @@ namespace XatHid {
 			}
 
 			public uint8[] encode() {
-				// XXX TODO
+				var buf = new uint8[REPORT_SIZE];
+				size_t off = 0;
 
-				return new uint8[REPORT_SIZE];
+				encode_uint8(buf, off, report_id);		off += sizeof(uint8);
+				encode_int32(buf, off, azimuth_position);	off += sizeof(int32);
+				encode_int32(buf, off, elevation_position);
+
+				return buf;
 			}
 		}
 
@@ -241,10 +273,29 @@ namespace XatHid {
 			}
 
 			public uint8[] encode() {
-				// XXX TODO
+				var buf = new uint8[REPORT_SIZE];
+				size_t off = 0;
 
-				return new uint8[REPORT_SIZE];
+				encode_uint8(buf, off, report_id);	off += sizeof(uint8);
+				encode_uint8(buf, off, report_id);
+
+				return buf;
+
 			}
+		}
+
+		internal void encode_uint8(uint8[] buf, size_t off, uint8 val) {
+			buf[off] = val;
+		}
+
+		internal void encode_uint16(uint8[] buf, size_t off, uint16 val) {
+			var le16 = val.to_little_endian();
+			Memory.copy(&buf[off], &le16, sizeof(uint16));
+		}
+
+		internal void encode_int32(uint8[] buf, size_t off, int32 val) {
+			var le32 = val.to_little_endian();
+			Memory.copy(&buf[off], &le32, sizeof(int32));
 		}
 	}
 }
