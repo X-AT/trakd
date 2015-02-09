@@ -6,13 +6,12 @@ find_package(PkgConfig)
 find_package(LCM REQUIRED)
 find_package(Vala REQUIRED)
 pkg_check_modules(libudev REQUIRED libudev)
-pkg_check_modules(glib2 REQUIRED glib-2.0)
+pkg_check_modules(gobject2 REQUIRED gobject-2.0)
 
 include(UseVala)
 
 vala_precompile(VALA_C
-  #src/rotd.vala
-  src/test-hidapi.vala
+  src/rotd.vala
 PACKAGES
   posix
   hidapi
@@ -25,7 +24,7 @@ include_directories(
   ../xat_rotd/include
   ${LCM_INCLUDE_DIRS}
   ${libudev_INCLUDE_DIRS}
-  ${glib2_INCLUDE_DIRS}
+  ${gobject2_INCLUDE_DIRS}
 )
 
 add_library(hidapi-hidraw
@@ -40,8 +39,8 @@ add_executable(xat_rotd_vala
 )
 target_link_libraries(xat_rotd_vala
   hidapi-hidraw
-  ${LCM_LIBRARIES}
-  ${glib2_LIBRARIES}
+  #${LCM_LIBRARIES}
+  ${gobject2_LIBRARIES}
 )
 
 install(TARGETS xat_rotd_vala hidapi-hidraw
