@@ -14,7 +14,7 @@ namespace XatHid {
 
 	namespace Report {
 		public interface IReport {
-			public abstract void decode(uint8[] report);
+			public abstract void decode(uint8[] report) throws ConvertError;
 			public abstract uint8[] encode();
 		}
 
@@ -37,11 +37,13 @@ namespace XatHid {
 				}
 			}
 
-			public void decode(uint8[] report) {
+			public void decode(uint8[] report) throws ConvertError {
 				size_t off = 0;
 
 				decode_uint8(report, off, out report_id);	off += sizeof(uint8);
-				//if (report_id != REPORT_ID) throw XXX not my report
+				if (report_id != REPORT_ID || report.length != REPORT_SIZE) {
+					throw new ConvertError.ILLEGAL_SEQUENCE("not a Report.Info");
+				}
 
 				decode_uint8_array(report, off, device_caps);
 			}
@@ -63,11 +65,13 @@ namespace XatHid {
 			public const uint8 REPORT_ID = 2;
 			public const size_t REPORT_SIZE = 1 + 2 + 8;
 
+			[Flags]
 			public enum Flags {
 				AZ_IN_MOTION = (1<<0),
 				EL_IN_MOTION = (1<<1)
 			}
 
+			[Flags]
 			public enum Buttons {
 				AZ_ENDSTOP = (1<<0),
 				EL_ENDSTOP = (1<<1)
@@ -99,10 +103,13 @@ namespace XatHid {
 			}
 			//! @}
 
-			public void decode(uint8[] report) {
+			public void decode(uint8[] report) throws ConvertError {
 				size_t off = 0;
 
 				decode_uint8(report, off, out report_id);	off += sizeof(uint8);
+				if (report_id != REPORT_ID || report.length != REPORT_SIZE) {
+					throw new ConvertError.ILLEGAL_SEQUENCE("not a Report.Status");
+				}
 
 				decode_uint8(report, off, out flags);		off += sizeof(uint8);
 				decode_uint8(report, off, out buttons);		off += sizeof(uint8);
@@ -141,10 +148,13 @@ namespace XatHid {
 				}
 			}
 
-			public void decode(uint8[] report) {
+			public void decode(uint8[] report) throws ConvertError {
 				size_t off = 0;
 
 				decode_uint8(report, off, out report_id);	off += sizeof(uint8);
+				if (report_id != REPORT_ID || report.length != REPORT_SIZE) {
+					throw new ConvertError.ILLEGAL_SEQUENCE("not a Report.BatVoltage");
+				}
 
 				decode_uint16(report, off, out raw_adc);
 			}
@@ -174,10 +184,13 @@ namespace XatHid {
 			public uint16 elevation_max_speed = 0;
 			//! @}
 
-			public void decode(uint8[] report) {
+			public void decode(uint8[] report) throws ConvertError {
 				size_t off = 0;
 
 				decode_uint8 (report, off, out report_id);	off += sizeof(uint8);
+				if (report_id != REPORT_ID || report.length != REPORT_SIZE) {
+					throw new ConvertError.ILLEGAL_SEQUENCE("not a Report.StepperSettings");
+				}
 
 				decode_uint16(report, off, out azimuth_acceleration);	off += sizeof(uint16);
 				decode_uint16(report, off, out elevation_acceleration);	off += sizeof(uint16);
