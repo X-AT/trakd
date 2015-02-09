@@ -301,12 +301,22 @@ namespace XatHid {
 			//! flag accessors @{
 			public bool azimuth {
 				get { return (this.motor & Motor.AZ) != 0; }
-				set { this.motor |= Motor.AZ; }
+				set {
+					if (value)
+						this.motor |= Motor.AZ;
+					else
+						this.motor &= ~Motor.AZ;
+				}
 			}
 
 			public bool elevation {
 				get { return (this.motor & Motor.EL) != 0; }
-				set { this.motor |= Motor.EL; }
+				set {
+					if (value)
+						this.motor |= Motor.EL;
+					else
+						this.motor &= ~Motor.EL;
+				}
 			}
 			//! @}
 
@@ -409,6 +419,7 @@ namespace XatHid {
 			return inst;
 		}
 
+		//! helper methods @{
 		internal void get_feature_report(Report.IReport report) throws IOChannelError, ConvertError {
 			var report_buffer = report.encode();
 			if (handle.get_feature_report(report_buffer) < 0) {
@@ -417,10 +428,83 @@ namespace XatHid {
 			report.decode(report_buffer);
 		}
 
-		public Report.Info get_info() {
+		internal void send_feature_report(Report.IReport report) throws IOChannelError {
+			var report_buffer = report.encode();
+			if (handle.send_feature_report(report_buffer) < 0) {
+				throw new IOChannelError.IO("send_feature_report");
+			}
+		}
+
+		internal void output_report(Report.IReport report) throws IOChannelError {
+			var report_buffer = report.encode();
+			if (handle.write(report_buffer) < 0) {
+				throw new IOChannelError.IO("write report");
+			}
+		}
+		//! @}
+
+		/**
+		 * Get device information report
+		 */
+		public Report.Info get_info() throws IOChannelError, ConvertError {
 			var info_ = new Report.Info();
 			get_feature_report((Report.IReport) info_);
 			return info_;
+		}
+
+		/**
+		 * Get status report
+		 */
+		public Report.Status get_status() throws IOChannelError, ConvertError {
+			var status_ = new Report.Status();
+			get_feature_report((Report.IReport) status_);
+			return status_;
+		}
+
+		/**
+		 * Get battery voltage readings
+		 */
+		public Report.BatVoltage get_bat_voltage() throws IOChannelError, ConvertError {
+			var bat_voltage_ = new Report.BatVoltage();
+			get_feature_report((Report.IReport) bat_voltage_);
+			return bat_voltage_;
+		}
+
+		/**
+		 * Get current stepper settings
+		 */
+		public Report.StepperSettings get_stepper_settings() throws IOChannelError, ConvertError {
+			var ss_ = new Report.StepperSettings();
+			get_feature_report(ss_);
+			return ss_;
+		}
+
+		/**
+		 * Set new settings.
+		 */
+		public void set_stepper_settings(Report.StepperSettings ss_) throws IOChannelError {
+			send_feature_report((Report.IReport) ss_);
+		}
+
+		/**
+		 * Send new position targets
+		 */
+		public void send_az_el(Report.AzEl ae_) throws IOChannelError {
+			output_report((Report.IReport) ae_);
+		}
+
+		/**
+		 * Reset current position to new values
+		 */
+		public void set_cur_position(Report.CurPosition cp_) throws IOChannelError {
+			send_feature_report((Report.IReport) cp_);
+		}
+
+		/**
+		 * Send stop command.
+		 */
+		public void send_stop(Report.Stop st_) throws IOChannelError {
+			output_report((Report.IReport) st_);
 		}
 	}
 }
