@@ -368,4 +368,59 @@ namespace XatHid {
 		}
 		//! @}
 	}
+
+	public class HIDConn {
+		private HidApi.Device handle;
+
+		public static HIDConn? open(int index = 0) throws FileError {
+			int cur_idx = 0;
+			bool dev_found = false;
+			string dev_path = "";
+
+			debug("Enumerating:");
+			var dev = HidApi.Info.enumerate(USB_ID.VID, USB_ID.PID);
+			for (; dev != null; dev = (owned) dev.next, cur_idx++) {
+				debug("Device found #%d:", cur_idx);
+				debug("\tPath:         %s", dev.path);
+				debug("\tManufacturer: %s", dev.manufacturer);
+				debug("\tProduct:      %s", dev.product);
+				debug("\tRelease:      %hx", dev.release_number);
+				debug("\tS/N:          %s", dev.serial_number_str);
+
+				if (index == cur_idx) {
+					dev_found = true;
+					dev_path = dev.path;
+				}
+			}
+
+			if (!dev_found) {
+				throw new FileError.NODEV(@"x-at rot device #$index not found");
+			}
+
+			var inst = new HIDConn();
+
+			debug("Trying to open device: %s", dev_path);
+			inst.handle = HidApi.Device.open_path(dev_path);
+			if (inst.handle == null) {
+				throw new FileError.ACCES(@"Could not open device: $dev_path");
+			}
+
+			message("Device #%d: %s opened.", index, dev_path);
+			return inst;
+		}
+
+		internal void get_feature_report(Report.IReport report) throws IOChannelError, ConvertError {
+			var report_buffer = report.encode();
+			if (handle.get_feature_report(report_buffer) < 0) {
+				throw new IOChannelError.IO("get_feature_report");
+			}
+			report.decode(report_buffer);
+		}
+
+		public Report.Info get_info() {
+			var info_ = new Report.Info();
+			get_feature_report((Report.IReport) info_);
+			return info_;
+		}
+	}
 }
