@@ -24,7 +24,7 @@ install:
 # valac
 - sudo add-apt-repository -y ppa:vala-team/ppa
 - sudo apt-get -qq update
-- sudo apt-get -qq install valac
+- sudo apt-get -qq install valac libglib2.0-dev
 script:
 - mkdir -p build
 - cd build && cmake ..
