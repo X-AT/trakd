@@ -38,7 +38,12 @@ namespace XatHid {
 			}
 
 			public void decode(uint8[] report) {
-				// XXX TODO
+				size_t off = 0;
+
+				decode_uint8(report, off, out report_id);	off += sizeof(uint8);
+				//if (report_id != REPORT_ID) throw XXX not my report
+
+				decode_uint8_array(report, off, device_caps);
 			}
 
 			public uint8[] encode() {
@@ -95,7 +100,14 @@ namespace XatHid {
 			//! @}
 
 			public void decode(uint8[] report) {
-				// XXX TODO
+				size_t off = 0;
+
+				decode_uint8(report, off, out report_id);	off += sizeof(uint8);
+
+				decode_uint8(report, off, out flags);		off += sizeof(uint8);
+				decode_uint8(report, off, out buttons);		off += sizeof(uint8);
+				decode_int32(report, off, out azimuth_position);off += sizeof(int32);
+				decode_int32(report, off, out elevation_position);
 			}
 
 			public uint8[] encode() {
@@ -130,7 +142,11 @@ namespace XatHid {
 			}
 
 			public void decode(uint8[] report) {
-				// XXX TODO
+				size_t off = 0;
+
+				decode_uint8(report, off, out report_id);	off += sizeof(uint8);
+
+				decode_uint16(report, off, out raw_adc);
 			}
 
 			public uint8[] encode() {
@@ -159,7 +175,14 @@ namespace XatHid {
 			//! @}
 
 			public void decode(uint8[] report) {
-				// XXX TODO
+				size_t off = 0;
+
+				decode_uint8 (report, off, out report_id);	off += sizeof(uint8);
+
+				decode_uint16(report, off, out azimuth_acceleration);	off += sizeof(uint16);
+				decode_uint16(report, off, out elevation_acceleration);	off += sizeof(uint16);
+				decode_uint16(report, off, out azimuth_max_speed);	off += sizeof(uint16);
+				decode_uint16(report, off, out elevation_max_speed);
 			}
 
 			public uint8[] encode() {
@@ -190,7 +213,10 @@ namespace XatHid {
 			//! @}
 
 			public void decode(uint8[] report) {
-				// XXX TODO
+				size_t off = 0;
+
+				decode_uint8(report, off, out report_id);	off += sizeof(uint8);
+				// Stub. write-only
 			}
 
 			public uint8[] encode() {
@@ -224,7 +250,10 @@ namespace XatHid {
 			//! @}
 
 			public void decode(uint8[] report) {
-				// XXX TODO
+				size_t off = 0;
+
+				decode_uint8(report, off, out report_id);	off += sizeof(uint8);
+				// Stub. write-only
 			}
 
 			public uint8[] encode() {
@@ -269,7 +298,10 @@ namespace XatHid {
 			//! @}
 
 			public void decode(uint8[] report) {
-				// XXX TODO
+				size_t off = 0;
+
+				decode_uint8(report, off, out report_id);	off += sizeof(uint8);
+				// Stub. write-only
 			}
 
 			public uint8[] encode() {
@@ -284,6 +316,10 @@ namespace XatHid {
 			}
 		}
 
+		/**
+		 * Decoder and encoder helpers
+		 * @{
+		 */
 		internal void encode_uint8(uint8[] buf, size_t off, uint8 val) {
 			buf[off] = val;
 		}
@@ -297,5 +333,26 @@ namespace XatHid {
 			var le32 = val.to_little_endian();
 			Memory.copy(&buf[off], &le32, sizeof(int32));
 		}
+
+		internal void decode_uint8(uint8[] buf, size_t off, out uint8 val) {
+			val = buf[off];
+		}
+
+		internal void decode_uint8_array(uint8[] buf, size_t off, uint8[] val) {
+			Memory.copy(val, &buf[off], val.length);
+		}
+
+		internal void decode_uint16(uint8[] buf, size_t off, out uint16 val) {
+			uint16 le16 = 0;
+			Memory.copy(&le16, &buf[off], sizeof(uint16));
+			val = uint16.from_little_endian(le16);
+		}
+
+		internal void decode_int32(uint8[] buf, size_t off, out int32 val) {
+			int32 le32 = 0;
+			Memory.copy(&le32, &buf[off], sizeof(int32));
+			val = int32.from_little_endian(le32);
+		}
+		//! @}
 	}
 }
