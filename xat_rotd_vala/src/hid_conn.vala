@@ -1,6 +1,5 @@
 /**
  * This file implements interface to X-AT ROT arduino board
- * @file
  */
 
 namespace XatHid {
