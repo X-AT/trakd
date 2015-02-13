@@ -51,6 +51,8 @@ add_custom_command(
     --thread
     ${LCM_MESSAGE_VALA}
     ${vala_msgs}
+    # fix bug in generated vapi, namespace Lcm gives error
+    COMMAND sed "s/Lcm.MessageError\;/MessageError\;/" -i ${CMAKE_BINARY_DIR}/vapi/${PROJECT_NAME}.vapi
   DEPENDS
     ${vala_msgs}
 )
@@ -68,6 +70,14 @@ add_library(xat_msgs SHARED
 target_link_libraries(xat_msgs
   ${LCM_LIBRARIES}
   ${gobject2_LIBRARIES}
+)
+
+#
+# Install
+#
+
+install(TARGETS xat_msgs
+  LIBRARY DESTINATION lib
 )
 
 # vim:set ts=2 sw=2 et:

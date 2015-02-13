@@ -14,22 +14,24 @@ vala_precompile(VALA_C
   src/rotd.vala
   src/hid_conn.vala
 PACKAGES
-  posix
-  glib-2.0
   hidapi
+  lcm
+  xat_msgs
 OPTIONS
   --thread
   --vapidir=${CMAKE_CURRENT_SOURCE_DIR}/vapi
+  --vapidir=${CMAKE_BINARY_DIR}/vapi
 )
 
 include_directories(
   ../xat_rotd/include
+  ${CMAKE_BINARY_DIR}/include
   ${LCM_INCLUDE_DIRS}
   ${libudev_INCLUDE_DIRS}
   ${gobject2_INCLUDE_DIRS}
 )
 
-add_library(hidapi-hidraw
+add_library(hidapi-hidraw STATIC
   ../xat_rotd/src/hid-hidraw.c
 )
 target_link_libraries(hidapi-hidraw
@@ -40,14 +42,15 @@ add_executable(xat_rotd_vala
   ${VALA_C}
 )
 target_link_libraries(xat_rotd_vala
+  xat_msgs
   hidapi-hidraw
   ${LCM_LIBRARIES}
   ${gobject2_LIBRARIES}
 )
 
-install(TARGETS xat_rotd_vala hidapi-hidraw
+install(TARGETS xat_rotd_vala #hidapi-hidraw
   RUNTIME DESTINATION bin
-  ARCHIVE DESTINATION lib
+  #ARCHIVE DESTINATION lib
 )
 
 # vim:set ts=2 sw=2 et:
