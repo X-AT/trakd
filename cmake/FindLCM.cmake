@@ -4,8 +4,20 @@ find_package(PkgConfig)
 pkg_check_modules(LCM REQUIRED lcm)
 
 find_program(LCM_GEN NAMES lcm-gen)
+mark_as_advanced(LCM_GEN)
 
-message(STATUS "LCM-GEN: ${LCM_GEN}")
+if(LCM_GEN)
+  execute_process(COMMAND ${LCM_GEN} "--version"
+    OUTPUT_VARIABLE LCM_GEN_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  message(STATUS "LCM gen: ${LCM_GEN} : ${LCM_GEN_VERSION}")
+endif()
+
+find_path(LCM_MESSAGE_VALA_PATH NAMES "lcm_message.vala" PATHS "/usr/src/lcm" "/usr/local/src/lcm")
+message(STATUS "LCM Vala message: ${LCM_MESSAGE_VALA_PATH}")
+set(LCM_MESSAGE_VALA "${LCM_MESSAGE_VALA_PATH}/lcm_message.vala")
+mark_as_advanced(LCM_MESSAGE_VALA_PATH LCM_MESSAGE_VALA)
 
 # based on ROS genmsg-extras.cmake
 
@@ -28,10 +40,10 @@ macro(_prepend_path ARG_PATH ARG_FILES ARG_OUTPUT_VAR)
   endforeach()
 endmacro()
 
-macro(add_message_files)
+macro(lcm_add_message_files)
   cmake_parse_arguments(ARG "" "DIRECTORY" "FILES" ${ARGN})
   if(ARG_UNPARSED_ARGUMENTS)
-    message(FATAL_ERROR "add_message_files() called with unused arguments: ${ARG_UNPARSED_ARGUMENTS}")
+    message(FATAL_ERROR "lcm_add_message_files() called with unused arguments: ${ARG_UNPARSED_ARGUMENTS}")
   endif()
 
   if(NOT ARG_DIRECTORY)
@@ -44,11 +56,11 @@ macro(add_message_files)
   endif()
 
   if(NOT IS_DIRECTORY ${MESSAGE_DIR})
-    message(FATAL_ERROR "add_message_files() directory not found: ${MESSAGE_DIR}")
+    message(FATAL_ERROR "lcm_add_message_files() directory not found: ${MESSAGE_DIR}")
   endif()
 
   if(${PROJECT_NAME}_GENERATE_MESSAGES)
-    message(FATAL_ERROR "generate_messages() must be called after add_message_files()")
+    message(FATAL_ERROR "lcm_generate_messages() must be called after lcm_add_message_files()")
   endif()
 
   # if FILES are not passed search message files in the given directory
@@ -67,9 +79,9 @@ macro(add_message_files)
   endforeach()
 endmacro()
 
-macro(generate_messages)
+macro(lcm_generate_messages)
   if(${PROJECT_NAME}_GENERATE_MESSAGES)
-    message(FATAL_ERROR "generate_messages() must only be called once per project'")
+    message(FATAL_ERROR "lcm_generate_messages() must only be called once per project'")
   endif()
 
   set(ARG_MESSAGES ${${PROJECT_NAME}_MESSAGE_FILES})
@@ -82,14 +94,17 @@ macro(generate_messages)
     message(STATUS "processing: ${msg} ${target}")
     add_custom_command(
       OUTPUT ${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${msg_ws}.hpp
-      OUTPUT ${CMAKE_BINARY_DIR}/lua/${PROJECT_NAME}/${msg_ws}.lua
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lua/${PROJECT_NAME}/${msg_ws}.lua
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/${PROJECT_NAME}.${msg_ws}.vala
       COMMAND mkdir -p ${CMAKE_BINARY_DIR}/include
       COMMAND ${LCM_GEN} --cpp-hpath ${CMAKE_BINARY_DIR}/include --cpp ${msg}
-      COMMAND mkdir -p ${CMAKE_BINARY_DIR}/lua
-      COMMAND ${LCM_GEN} --lpath ${CMAKE_BINARY_DIR}/lua --lua ${msg}
+      COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/lua
+      COMMAND ${LCM_GEN} --lpath ${CMAKE_CURRENT_BINARY_DIR}/lua --lua ${msg}
+      COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/src
+      COMMAND ${LCM_GEN} --vala-path ${CMAKE_CURRENT_BINARY_DIR}/src --vala ${msg}
       DEPENDS ${msg}
       )
-    add_custom_target(gencpp-${PROJECT_NAME}-${msg_ws} ALL DEPENDS ${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${msg_ws}.hpp)
+    add_custom_target(lcm-gen-${PROJECT_NAME}-${msg_ws} ALL DEPENDS ${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${msg_ws}.hpp)
   endforeach()
 endmacro()
 
