@@ -1,6 +1,7 @@
 
 using XatHid.Report;
 
+// TODO move to common or xat_msgs library.
 class HeaderFiller {
 	internal int32 last_seq = 0;
 
@@ -88,6 +89,9 @@ class RotD : Object {
 	private static int tr_az_msp = 200;
 	private static int tr_el_msp = 200;
 
+	// lcm polling
+	private static IOChannel lcm_iochannel = null;
+	private static uint lcm_watch_id = 0;
 
 	private const GLib.OptionEntry[] options = {
 		{"lcm-url", 'l', 0, OptionArg.STRING, ref lcm_url, "LCM connection URL", "URL"},
@@ -124,9 +128,19 @@ class RotD : Object {
 	}
 
 
-	//private static async void message_handle() {
-	//	yield lcm.handle();
-	//}
+	private static void handle_command(xat_msgs.command_t cmd) {
+		message("got command");
+	}
+
+	private static void handle_joint_goal(xat_msgs.joint_goal_t goal) {
+		message("got goal");
+	}
+
+	private static bool lcm_watch_callback(IOChannel source, IOCondition condition) {
+		lcm.handle();
+		// todo check handle error
+		return true;
+	}
 
 	private static bool timer_publish_status() {
 		last_status = conn.get_status();
@@ -134,7 +148,7 @@ class RotD : Object {
 
 		ps.header = status_header.next_now();
 		// flags
-		ps.homing_in_proc = false;
+		ps.homing_in_proc = false; // TODO
 		ps.azimuth_in_motion = last_status.az_in_motion;
 		ps.elevation_in_motion = last_status.el_in_motion;
 		ps.azimuth_in_endstop = last_status.az_endstop;
@@ -163,9 +177,38 @@ class RotD : Object {
 	}
 
 	public static int run() {
-
+		// start periodic jobs
 		Timeout.add(100 /* ms */, timer_publish_status);
 		Timeout.add(1000 /* ms */, timer_publish_bat_voltage);
+
+		// setup watch on LCM FD
+		var fd = lcm.get_fileno();
+		lcm_iochannel = new IOChannel.unix_new(fd);
+		lcm_watch_id = lcm_iochannel.add_watch(
+				IOCondition.IN | IOCondition.ERR | IOCondition.HUP,
+				lcm_watch_callback);
+
+		// subscribe to topics
+		lcm.subscribe("xat/command",
+			(rbuf, channel, ud) => {
+				try {
+					var msg = new xat_msgs.command_t();
+					msg.decode(rbuf.data);
+					handle_command(msg);
+				} catch (Lcm.MessageError e) {
+					error("Message error: %s", e.message);
+				}
+			});
+		lcm.subscribe("xat/rot_goal",
+			(rbuf, channel, ud) => {
+				try {
+					var msg = new xat_msgs.joint_goal_t();
+					msg.decode(rbuf.data);
+					handle_joint_goal(msg);
+				} catch (Lcm.MessageError e) {
+					error("Message error: %s", e.message);
+				}
+			});
 
 		loop.run();
 		return 0;
@@ -238,6 +281,7 @@ class RotD : Object {
 			return 1;
 		}
 
+		message("rotd started.");
 		var ret = run();
 
 		HidApi.exit();
