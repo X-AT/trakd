@@ -13,6 +13,7 @@ include(EnableCXX11)
 include_directories(
   include
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/hidapi/include
   ${CMAKE_BINARY_DIR}/include
   ${Boost_INCLUDE_DIRS}
   ${console_bridge_INCLUDE_DIRS}
@@ -22,10 +23,10 @@ include_directories(
 
 add_executable(xat_rotd
   src/xat_rotd.cpp
-  src/hid-hidraw.c
   src/hid_conn.cpp
 )
 target_link_libraries(xat_rotd
+  hidapi-hidraw
   ${Boost_LIBRARIES}
   ${console_bridge_LIBRARIES}
   ${LCM_LIBRARIES}
