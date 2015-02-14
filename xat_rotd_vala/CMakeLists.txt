@@ -25,6 +25,7 @@ OPTIONS
 
 include_directories(
   ${CMAKE_BINARY_DIR}/include
+  ${CMAKE_SOURCE_DIR}/hidapi/include
   ${LCM_INCLUDE_DIRS}
   ${libudev_INCLUDE_DIRS}
   ${gobject2_INCLUDE_DIRS}
