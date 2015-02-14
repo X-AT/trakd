@@ -1,6 +1,28 @@
 
 using XatHid.Report;
 
+class HeaderFiller {
+	internal int32 last_seq = 0;
+
+	public xat_msgs.header_t next_now() {
+		var h = new xat_msgs.header_t();
+
+		// prevent signed int overflow
+		if (last_seq == int32.MAX)
+			last_seq = 0;
+
+		h.seq = last_seq++;
+		h.stamp = now();
+		return h;
+	}
+
+	public static int64 now() {
+		var tv = new TimeVal();
+		tv.get_current_time();
+		return tv.tv_sec * 1000000 + tv.tv_usec;
+	}
+}
+
 class MotConv {
 	private float _step_to_rad = 0.0f;
 
@@ -31,11 +53,18 @@ class RotD : Object {
 	private static Lcm.LcmNode? lcm;
 	private static MainLoop loop;
 
+	// header data
+	private static HeaderFiller status_header;
+	private static HeaderFiller bat_voltage_header;
+
 	// motor settings
 	private static MotConv az_mc;
 	private static MotConv el_mc;
 	private static StepperSettings homing_settings;
 	private static StepperSettings tracking_settings;
+
+	// report from device
+	private static Status last_status;
 
 	// main opts
 	private static string? lcm_url = null;
@@ -95,17 +124,49 @@ class RotD : Object {
 	}
 
 
-	private static async void message_handle() {
-		yield lcm.handle();
-	}
+	//private static async void message_handle() {
+	//	yield lcm.handle();
+	//}
 
 	private static bool timer_publish_status() {
-		message("to");
+		last_status = conn.get_status();
+		var ps = new xat_msgs.joint_state_t();
+
+		ps.header = status_header.next_now();
+		// flags
+		ps.homing_in_proc = false;
+		ps.azimuth_in_motion = last_status.az_in_motion;
+		ps.elevation_in_motion = last_status.el_in_motion;
+		ps.azimuth_in_endstop = last_status.az_endstop;
+		ps.elevation_in_endstop = last_status.el_endstop;
+		// positions
+		ps.azimuth_step_cnt = last_status.azimuth_position;
+		ps.elevation_step_cnt = last_status.elevation_position;
+		ps.azimuth_angle = az_mc.to_rad(last_status.azimuth_position);
+		ps.elevation_angle = el_mc.to_rad(last_status.elevation_position);
+
+		lcm.publish("xat/rot_state", ps.encode());
+		// todo terminate on error
+		return true;
+	}
+
+	private static bool timer_publish_bat_voltage() {
+		var rv = conn.get_bat_voltage();
+		var pv = new xat_msgs.voltage_t();
+
+		pv.header = bat_voltage_header.next_now();
+		pv.voltage = rv.battery_voltage;
+
+		lcm.publish("xat/battery_voltage", pv.encode());
+		// todo terminate on error
 		return true;
 	}
 
 	public static int run() {
+
 		Timeout.add(100 /* ms */, timer_publish_status);
+		Timeout.add(1000 /* ms */, timer_publish_bat_voltage);
+
 		loop.run();
 		return 0;
 	}
@@ -116,6 +177,8 @@ class RotD : Object {
 		el_mc = new MotConv();
 		homing_settings = new StepperSettings();
 		tracking_settings = new StepperSettings();
+		status_header = new HeaderFiller();
+		bat_voltage_header = new HeaderFiller();
 	}
 
 	public static int main(string[] args) {
