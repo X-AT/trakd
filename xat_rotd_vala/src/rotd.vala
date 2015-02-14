@@ -7,7 +7,7 @@ class RotD : Object {
 		message("RotD initializing");
 
 		message("LCM connectiong...");
-		var lcm = new Lcm.Lcm();
+		var lcm = new Lcm.LcmNode();
 		message("LCM ok.");
 
 		if (!HidApi.init()) {

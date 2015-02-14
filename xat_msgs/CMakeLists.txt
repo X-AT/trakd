@@ -51,8 +51,6 @@ add_custom_command(
     --thread
     ${LCM_MESSAGE_VALA}
     ${vala_msgs}
-    # fix bug in generated vapi, namespace Lcm gives error
-    COMMAND sed "s/Lcm.MessageError\;/MessageError\;/" -i ${CMAKE_BINARY_DIR}/vapi/${PROJECT_NAME}.vapi
   DEPENDS
     ${vala_msgs}
 )
