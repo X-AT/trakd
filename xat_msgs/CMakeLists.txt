@@ -38,6 +38,7 @@ endforeach()
 add_custom_command(
   OUTPUT ${vala_msgs_c}
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lcm_message.c
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/header_filler.c
   COMMAND mkdir -p ${CMAKE_BINARY_DIR}/vapi
   COMMAND ${VALA_EXECUTABLE}
   ARGS
@@ -51,8 +52,10 @@ add_custom_command(
     --thread
     ${LCM_MESSAGE_VALA}
     ${vala_msgs}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/header_filler.vala
   DEPENDS
     ${vala_msgs}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/header_filler.vala
 )
 
 include_directories(
@@ -63,6 +66,7 @@ include_directories(
 
 add_library(xat_msgs SHARED
   ${CMAKE_CURRENT_BINARY_DIR}/lcm_message.c
+  ${CMAKE_CURRENT_BINARY_DIR}/header_filler.c
   ${vala_msgs_c}
 )
 target_link_libraries(xat_msgs

@@ -1,28 +1,6 @@
 
 using XatHid.Report;
 
-// TODO move to common or xat_msgs library.
-class HeaderFiller {
-	internal int32 last_seq = 0;
-
-	public xat_msgs.header_t next_now() {
-		var h = new xat_msgs.header_t();
-
-		// prevent signed int overflow
-		if (last_seq == int32.MAX)
-			last_seq = 0;
-
-		h.seq = last_seq++;
-		h.stamp = now();
-		return h;
-	}
-
-	public static int64 now() {
-		var tv = new TimeVal();
-		tv.get_current_time();
-		return tv.tv_sec * 1000000 + tv.tv_usec;
-	}
-}
 
 class MotConv {
 	private float _step_to_rad = 0.0f;
@@ -55,8 +33,8 @@ class RotD : Object {
 	private static MainLoop loop;
 
 	// header data
-	private static HeaderFiller status_header;
-	private static HeaderFiller bat_voltage_header;
+	private static xat_msgs.HeaderFiller status_header;
+	private static xat_msgs.HeaderFiller bat_voltage_header;
 
 	// motor settings
 	private static MotConv az_mc;
@@ -220,8 +198,8 @@ class RotD : Object {
 		el_mc = new MotConv();
 		homing_settings = new StepperSettings();
 		tracking_settings = new StepperSettings();
-		status_header = new HeaderFiller();
-		bat_voltage_header = new HeaderFiller();
+		status_header = new xat_msgs.HeaderFiller();
+		bat_voltage_header = new xat_msgs.HeaderFiller();
 	}
 
 	public static int main(string[] args) {
