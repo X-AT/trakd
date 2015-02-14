@@ -224,6 +224,11 @@ namespace XatHid {
 			public int32 elevation_position = 0;
 			//! @}
 
+			public AzEl.with_data(int32 az, int32 el) {
+				azimuth_position = az;
+				elevation_position = el;
+			}
+
 			public void decode(uint8[] report) {
 				size_t off = 0;
 
@@ -261,6 +266,11 @@ namespace XatHid {
 			public int32 elevation_position = 0;
 			//! @}
 
+			public CurPosition.with_data(int32 az, int32 el) {
+				azimuth_position = az;
+				elevation_position = el;
+			}
+
 			public void decode(uint8[] report) {
 				size_t off = 0;
 
@@ -296,6 +306,11 @@ namespace XatHid {
 			public uint8 report_id = REPORT_ID;
 			public uint8 motor = 0;
 			//! @}
+
+			public Stop.with_data(bool az, bool el) {
+				azimuth = az;
+				elevation = el;
+			}
 
 			//! flag accessors @{
 			public bool azimuth {

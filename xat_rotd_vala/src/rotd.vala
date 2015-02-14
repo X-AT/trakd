@@ -126,10 +126,7 @@ class RotD : Object {
 				// if (homing in process) stop homing
 
 				message("Requested to stop motors.");
-				var stop = new Stop();
-				stop.azimuth = true;
-				stop.elevation = true;
-				conn.send_stop(stop);
+				conn.send_stop(new Stop.with_data(true, true));
 				break;
 
 			default:
@@ -199,10 +196,7 @@ class RotD : Object {
 			message("Device caps: %s", devinfo.device_caps_str);
 
 			// stop motors
-			var stop = new Stop();
-			stop.azimuth = true;
-			stop.elevation = true;
-			conn.send_stop(stop);
+			conn.send_stop(new Stop.with_data(true, true));
 
 			// log current status
 			var status = conn.get_status();
