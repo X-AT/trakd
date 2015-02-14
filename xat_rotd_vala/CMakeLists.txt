@@ -24,7 +24,6 @@ OPTIONS
 )
 
 include_directories(
-  ../xat_rotd/include
   ${CMAKE_BINARY_DIR}/include
   ${LCM_INCLUDE_DIRS}
   ${libudev_INCLUDE_DIRS}
@@ -41,9 +40,8 @@ target_link_libraries(xat_rotd_vala
   ${gobject2_LIBRARIES}
 )
 
-install(TARGETS xat_rotd_vala #hidapi-hidraw
+install(TARGETS xat_rotd_vala
   RUNTIME DESTINATION bin
-  #ARCHIVE DESTINATION lib
 )
 
 # vim:set ts=2 sw=2 et:
