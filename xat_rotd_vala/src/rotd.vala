@@ -31,6 +31,7 @@ class RotD : Object {
 	private static Lcm.LcmNode? lcm;
 	private static MainLoop loop;
 
+	// motor settings
 	private static MotConv az_mc;
 	private static MotConv el_mc;
 	private static StepperSettings homing_settings;
@@ -93,17 +94,29 @@ class RotD : Object {
 		debug("\tEL max speed:    %d", ss.elevation_max_speed);
 	}
 
+
+	private static async void message_handle() {
+		yield lcm.handle();
+	}
+
+	private static bool timer_publish_status() {
+		message("to");
+		return true;
+	}
+
+	public static int run() {
+		Timeout.add(100 /* ms */, timer_publish_status);
+		loop.run();
+		return 0;
+	}
+
 	static construct {
+		loop = new MainLoop();
 		az_mc = new MotConv();
 		el_mc = new MotConv();
 		homing_settings = new StepperSettings();
 		tracking_settings = new StepperSettings();
 	}
-
-	public static int run() {
-		return 0;
-	}
-
 
 	public static int main(string[] args) {
 		message("rotd initializing");
