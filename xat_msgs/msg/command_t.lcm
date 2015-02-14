@@ -4,6 +4,8 @@ struct command_t {
 	const int32_t
 		START_HOMING	= 100,
 		STOP_HOMING	= 101,
+		HOMING_START	= 100,
+		HOMING_STOP	= 101,
 		MOTOR_STOP	= 200;
 
 	header_t header;

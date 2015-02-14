@@ -97,7 +97,7 @@ class RotD : Object {
 	};
 
 
-	private static void debug_stepper_settings(XatHid.Report.StepperSettings ss, string name) {
+	private static void debug_stepper_settings(StepperSettings ss, string name) {
 		debug("%s stepper settings:", name);
 		debug("\tAZ acceleration: %d", ss.azimuth_acceleration);
 		debug("\tEL acceleration: %d", ss.elevation_acceleration);
@@ -105,13 +105,51 @@ class RotD : Object {
 		debug("\tEL max speed:    %d", ss.elevation_max_speed);
 	}
 
+	private static void debug_status(Status s) {
+		debug("Status:");
+		debug(@"\tFlags:   %s%s", s.az_in_motion? "AZ_IN_MOTION " : "", s.el_in_motion? "EL_IN_MOTION" : "");
+		debug(@"\tButtons: %s%s", s.az_endstop? "AZ_ENDSTOP " : "", s.el_endstop? "EL_ENDSTOP" : "");
+		debug(@"\tAZ position: $(s.azimuth_position)");
+		debug(@"\tEL position: $(s.elevation_position)");
+	}
 
 	private static void handle_command(xat_msgs.command_t cmd) {
-		message("got command");
+		debug(@"Got command: #$(cmd.header.seq) time: $(cmd.header.stamp) command: $(cmd.command)");
+
+		switch (cmd.command) {
+			case xat_msgs.command_t.HOMING_START:
+				warning("homing not supported");
+				break;
+
+			case xat_msgs.command_t.HOMING_STOP:
+			case xat_msgs.command_t.MOTOR_STOP:
+				// if (homing in process) stop homing
+
+				message("Requested to stop motors.");
+				var stop = new Stop();
+				stop.azimuth = true;
+				stop.elevation = true;
+				conn.send_stop(stop);
+				break;
+
+			default:
+				break;
+		}
 	}
 
 	private static void handle_joint_goal(xat_msgs.joint_goal_t goal) {
-		message("got goal");
+		// if (in homing process) return;
+
+		var az_el = new AzEl();
+		az_el.azimuth_position = az_mc.to_steps(goal.azimuth_angle);
+		az_el.elevation_position = el_mc.to_steps(goal.elevation_angle);
+
+		debug(@"Got goal: #$(goal.header.seq) time: $(goal.header.stamp)");
+		debug("\tAZ: %+4.6f rad (%+10d)", goal.azimuth_angle, az_el.azimuth_position);
+		debug("\tEL: %+4.6f rad (%+10d)", goal.elevation_angle, az_el.elevation_position);
+
+		conn.send_az_el(az_el);
+		// todo check send error
 	}
 
 	private static bool lcm_watch_callback(IOChannel source, IOCondition condition) {
@@ -154,7 +192,43 @@ class RotD : Object {
 		return true;
 	}
 
+	private static int init() {
+		try {
+			// get device caps, TODO parse it
+			var devinfo = conn.get_info();
+			message("Device caps: %s", devinfo.device_caps_str);
+
+			// stop motors
+			var stop = new Stop();
+			stop.azimuth = true;
+			stop.elevation = true;
+			conn.send_stop(stop);
+
+			// log current status
+			var status = conn.get_status();
+			debug_status(status);
+
+			// get old settings
+			var old_ss = conn.get_stepper_settings();
+			debug_stepper_settings(old_ss, "Old");
+
+			// apply new settings
+			message("Apply tracking settings");
+			conn.set_stepper_settings(tracking_settings);
+
+		} catch (IOChannelError e) {
+			error("Device io error: %s", e.message);
+			return 1;
+		}
+
+		return 0;
+	}
+
 	public static int run() {
+		// initialize
+		if (init() != 0)
+			return 1;
+
 		// start periodic jobs
 		Timeout.add(100 /* ms */, timer_publish_status);
 		Timeout.add(1000 /* ms */, timer_publish_bat_voltage);
@@ -188,6 +262,7 @@ class RotD : Object {
 				}
 			});
 
+		message("rotd started.");
 		loop.run();
 		return 0;
 	}
@@ -259,7 +334,6 @@ class RotD : Object {
 			return 1;
 		}
 
-		message("rotd started.");
 		var ret = run();
 
 		HidApi.exit();
