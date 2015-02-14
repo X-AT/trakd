@@ -19,7 +19,7 @@ PACKAGES
   xat_msgs
 OPTIONS
   --thread
-  --vapidir=${CMAKE_CURRENT_SOURCE_DIR}/vapi
+  --vapidir=${CMAKE_SOURCE_DIR}/hidapi/vapi
   --vapidir=${CMAKE_BINARY_DIR}/vapi
 )
 
@@ -29,13 +29,6 @@ include_directories(
   ${LCM_INCLUDE_DIRS}
   ${libudev_INCLUDE_DIRS}
   ${gobject2_INCLUDE_DIRS}
-)
-
-add_library(hidapi-hidraw STATIC
-  ../xat_rotd/src/hid-hidraw.c
-)
-target_link_libraries(hidapi-hidraw
-  ${libudev_LIBRARIES}
 )
 
 add_executable(xat_rotd_vala
