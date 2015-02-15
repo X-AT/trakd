@@ -7,6 +7,7 @@ find_package(LCM REQUIRED)
 find_package(Vala REQUIRED)
 pkg_check_modules(libudev REQUIRED libudev)
 pkg_check_modules(gobject2 REQUIRED gobject-2.0)
+pkg_check_modules(gio REQUIRED gio-2.0)
 
 include(UseVala)
 
@@ -14,6 +15,7 @@ vala_precompile(VALA_C
   src/rotd.vala
   src/hid_conn.vala
 PACKAGES
+  gio-2.0
   hidapi
   lcm
   xat_msgs
@@ -29,6 +31,7 @@ include_directories(
   ${LCM_INCLUDE_DIRS}
   ${libudev_INCLUDE_DIRS}
   ${gobject2_INCLUDE_DIRS}
+  ${gio_INCLUDE_DIRS}
 )
 
 add_executable(xat_rotd_vala
@@ -39,6 +42,7 @@ target_link_libraries(xat_rotd_vala
   hidapi-hidraw
   ${LCM_LIBRARIES}
   ${gobject2_LIBRARIES}
+  ${gio_LIBRARIES}
 )
 
 install(TARGETS xat_rotd_vala

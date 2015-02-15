@@ -10,7 +10,10 @@ class MotConv {
 	 * @param reduction_ratio i = n1/n2, where n1 motor shaft speed, n2 output shaft
 	 * @param reversed        motor reversed?
 	 */
-	public void update(int steps_per_rev = 200, double reduction_ratio = 1.0, bool reversed = false) {
+	public void update(int steps_per_rev = 200, double reduction_ratio = 1.0, bool reversed = false)
+		requires(steps_per_rev > 0)
+		requires(reduction_ratio > 0.0)
+	{
 		_step_to_rad = (float) ((2 * Math.PI / steps_per_rev) / reduction_ratio);
 		assert(_step_to_rad != 0.0f);
 
@@ -42,34 +45,42 @@ class RotD : Object {
 	private static StepperSettings homing_settings;
 	private static StepperSettings tracking_settings;
 
-	// report from device
-	private static Status last_status;
+	// lcm polling
+	private static IOChannel lcm_iochannel = null;
+	private static uint lcm_watch_id = 0;
+
+	// homing
+	private static Cancellable homing_cancelable;
+	private static bool homing_in_proc;
+
+	// polling rates
+	private const int STATUS_PERIOD_MS = 100;	// -> 10 Hz
+	private const int BAT_VOLTAGE_PERIOD_MS = 1000;	// ->  1 Hz
+	private const int HOMING_PERIOD_MS = 50;	// -> 20 Hz
+
+	// -*- options -*-
 
 	// main opts
 	private static string? lcm_url = null;
 	private static int dev_index = 0;
-	// azimuth motor
+	// azimuth motor opts
 	private static int az_steps_per_rev = 200;
 	private static double az_reduction_ratio = 1.0;
 	private static bool az_reversed = false;
-	// elecation motor
+	// elecation motor opts
 	private static int el_steps_per_rev = 200;
 	private static double el_reduction_ratio = 1.0;
 	private static bool el_reversed = false;
-	// homing settings
+	// homing settings opts
 	private static int hm_az_acc = 100;
 	private static int hm_el_acc = 100;
 	private static int hm_az_msp = 200;
 	private static int hm_el_msp = 200;
-	// tracking settings
+	// tracking settings opts
 	private static int tr_az_acc = 200;
 	private static int tr_el_acc = 200;
 	private static int tr_az_msp = 200;
 	private static int tr_el_msp = 200;
-
-	// lcm polling
-	private static IOChannel lcm_iochannel = null;
-	private static uint lcm_watch_id = 0;
 
 	private const GLib.OptionEntry[] options = {
 		{"lcm-url", 'l', 0, OptionArg.STRING, ref lcm_url, "LCM connection URL", "URL"},
@@ -96,6 +107,7 @@ class RotD : Object {
 		{null}
 	};
 
+	// -*- helpers -*-
 
 	private static void debug_stepper_settings(StepperSettings ss, string name) {
 		debug("%s stepper settings:", name);
@@ -113,29 +125,207 @@ class RotD : Object {
 		debug(@"\tEL position: $(s.elevation_position)");
 	}
 
+	// -*- homing process -*-
+
+	// Stop and reset position to 0
+	private static async void homing_init() {
+		assert(!homing_cancelable.is_cancelled());
+
+		debug("Homing init begins");
+
+		// setup cancellable to stop polling
+		var cancel = homing_cancelable.cancelled.connect(
+				() => homing_init.callback());
+
+		// send stop
+		conn.send_stop(new Stop.with_data(true, true));
+
+		// wait while it stops
+		var to_src = Timeout.add(HOMING_PERIOD_MS,
+			() => {
+				// XXX error handling
+				var s = conn.get_status();
+				if (s.az_in_motion || s.el_in_motion)
+					return true;
+
+				debug("Reset current position to 0");
+				conn.set_cur_position(new CurPosition.with_data(0, 0));
+
+				message("Apply homing settings");
+				conn.set_stepper_settings(homing_settings);
+
+				homing_init.callback();
+				return false;
+			});
+		yield;
+
+		// we are done or cancelled
+		Source.remove(to_src);
+		homing_cancelable.disconnect(cancel);
+		debug("Homing init %s", homing_cancelable.is_cancelled()? "canceled" : "done");
+	}
+
+	// Do homing
+	private static async void homing_homing() {
+		if (homing_cancelable.is_cancelled())
+			return;
+
+		debug("Homing process begins");
+
+		// setup cancellable to stop
+		var cancel = homing_cancelable.cancelled.connect(
+				() => homing_homing.callback());
+
+		bool az_in_home = false;
+		bool el_in_home = false;
+		int az_n = 1;
+		int el_n = 1;
+		var az_el = new AzEl.with_data(0, 0);
+
+		var to_src = Timeout.add(HOMING_PERIOD_MS,
+			() => {
+				// XXX error handling
+				var s = conn.get_status();
+
+				// latch home positions
+				if (s.az_endstop && !az_in_home) {
+					az_in_home = true;
+					az_el.azimuth_position = s.azimuth_position;
+				}
+				if (s.el_endstop && !el_in_home) {
+					el_in_home = true;
+					az_el.elevation_position = s.elevation_position;
+				}
+
+				// next move
+				if (!s.az_in_motion && !az_in_home) {
+					double ang = az_n * Math.PI;
+					if ((az_n % 2) != 0) ang = -ang;
+					az_n++;
+
+					// limit to one shaft revolution
+					if (Math.fabs(ang) > 2 * Math.PI) {
+						ang = (ang < 0)? -2 * Math.PI : 2 * Math.PI;
+						warning(@"Homing: reach azimuth angle limit! n: $az_n");
+					}
+
+					az_el.azimuth_position = az_mc.to_steps((float) ang);
+				}
+				if (!s.el_in_motion && !el_in_home) {
+					double ang = el_n * Math.PI;
+					if ((el_n % 2) != 0) ang = -ang;
+					el_n++;
+
+					// limit to one shaft revolution
+					if (Math.fabs(ang) > 2 * Math.PI) {
+						ang = (ang < 0)? -2 * Math.PI : 2 * Math.PI;
+						warning(@"Homing: reach elevation angle limit! n: $el_n");
+					}
+
+					az_el.elevation_position = el_mc.to_steps((float) ang);
+				}
+
+				// apply positions
+				conn.send_az_el(az_el);
+
+				// check if we in home then terminame polling
+				if (az_in_home && el_in_home) {
+					homing_homing.callback();
+					return false;
+				} else {
+					return true;
+				}
+			});
+		yield;
+
+		// we are done or cancelled
+		Source.remove(to_src);
+		homing_cancelable.disconnect(cancel);
+
+		if (homing_cancelable.is_cancelled())
+			conn.send_stop(new Stop.with_data(true, true));
+
+		debug("Homing process %s", homing_cancelable.is_cancelled()? "canceled" : "done");
+	}
+
+	// Waits until motors stops and apply home position
+	private static async void homing_finish() {
+		debug("Homing finishing");
+
+		Timeout.add(HOMING_PERIOD_MS,
+			() => {
+				// XXX error handling
+				var s = conn.get_status();
+				if (s.az_in_motion || s.el_in_motion)
+					return true;
+
+				debug("Reset current position to 0");
+				conn.set_cur_position(new CurPosition.with_data(0, 0));
+
+				message("Apply tracking settings");
+				conn.set_stepper_settings(tracking_settings);
+
+				homing_finish.callback();
+				return false;
+			});
+		yield;
+	}
+
+	private static async void homing_proc() {
+		message("Homing process started");
+		homing_in_proc = true;
+
+		yield homing_init();
+		yield homing_homing();
+		yield homing_finish();
+
+		message("Hoiming finished");
+		homing_in_proc = false;
+	}
+
+	// -*- subscriber callbacks -*-
+
 	private static void handle_command(xat_msgs.command_t cmd) {
 		debug(@"Got command: #$(cmd.header.seq) time: $(cmd.header.stamp) command: $(cmd.command)");
 
 		switch (cmd.command) {
-			case xat_msgs.command_t.HOMING_START:
-				warning("homing not supported");
-				break;
+		case xat_msgs.command_t.HOMING_START:
+			if (!homing_in_proc) {
+				message("Requested to start homing process.");
+				homing_cancelable.reset();
+				homing_proc.begin();
+			} else {
+				warning("Requested to start homing process. But it already run.");
+			}
+			break;
 
-			case xat_msgs.command_t.HOMING_STOP:
-			case xat_msgs.command_t.MOTOR_STOP:
-				// if (homing in process) stop homing
+		case xat_msgs.command_t.HOMING_CANCEL:
+			// XXX buggy :(
+			message("Requested to cancel homing process.");
+			homing_cancelable.cancel();
+			break;
 
-				message("Requested to stop motors.");
-				conn.send_stop(new Stop.with_data(true, true));
-				break;
+		case xat_msgs.command_t.MOTOR_STOP:
+			message("Requested to stop motors.");
+			//homing_cancelable.cancel();
+			conn.send_stop(new Stop.with_data(true, true));
+			break;
 
-			default:
-				break;
+		case xat_msgs.command_t.TERMINATE_ALL:
+			message("Requested to quit.");
+			loop.quit();
+			break;
+
+		default:
+			break;
 		}
 	}
 
 	private static void handle_joint_goal(xat_msgs.joint_goal_t goal) {
-		// if (in homing process) return;
+		if (homing_in_proc) {
+			debug(@"Homing in process, goal [#$(goal.header.seq) time: $(goal.header.stamp)] is skipped.");
+			return;
+		}
 
 		var az_el = new AzEl();
 		az_el.azimuth_position = az_mc.to_steps(goal.azimuth_angle);
@@ -155,22 +345,24 @@ class RotD : Object {
 		return true;
 	}
 
+	// -*- timer callbacks -*-
+
 	private static bool timer_publish_status() {
-		last_status = conn.get_status();
+		var status = conn.get_status();
 		var ps = new xat_msgs.joint_state_t();
 
 		ps.header = status_header.next_now();
 		// flags
-		ps.homing_in_proc = false; // TODO
-		ps.azimuth_in_motion = last_status.az_in_motion;
-		ps.elevation_in_motion = last_status.el_in_motion;
-		ps.azimuth_in_endstop = last_status.az_endstop;
-		ps.elevation_in_endstop = last_status.el_endstop;
+		ps.homing_in_proc = homing_in_proc;
+		ps.azimuth_in_motion = status.az_in_motion;
+		ps.elevation_in_motion = status.el_in_motion;
+		ps.azimuth_in_endstop = status.az_endstop;
+		ps.elevation_in_endstop = status.el_endstop;
 		// positions
-		ps.azimuth_step_cnt = last_status.azimuth_position;
-		ps.elevation_step_cnt = last_status.elevation_position;
-		ps.azimuth_angle = az_mc.to_rad(last_status.azimuth_position);
-		ps.elevation_angle = el_mc.to_rad(last_status.elevation_position);
+		ps.azimuth_step_cnt = status.azimuth_position;
+		ps.elevation_step_cnt = status.elevation_position;
+		ps.azimuth_angle = az_mc.to_rad(status.azimuth_position);
+		ps.elevation_angle = el_mc.to_rad(status.elevation_position);
 
 		lcm.publish("xat/rot_state", ps.encode());
 		// todo terminate on error
@@ -189,7 +381,12 @@ class RotD : Object {
 		return true;
 	}
 
+	// -*- main loop -*-
+
 	private static int init() {
+		// homing canceled by default
+		homing_cancelable.cancel();
+
 		try {
 			// get device caps, TODO parse it
 			var devinfo = conn.get_info();
@@ -224,8 +421,8 @@ class RotD : Object {
 			return 1;
 
 		// start periodic jobs
-		Timeout.add(100 /* ms */, timer_publish_status);
-		Timeout.add(1000 /* ms */, timer_publish_bat_voltage);
+		Timeout.add(STATUS_PERIOD_MS, timer_publish_status);
+		Timeout.add(BAT_VOLTAGE_PERIOD_MS, timer_publish_bat_voltage);
 
 		// setup watch on LCM FD
 		var fd = lcm.get_fileno();
@@ -269,6 +466,8 @@ class RotD : Object {
 		tracking_settings = new StepperSettings();
 		status_header = new xat_msgs.HeaderFiller();
 		bat_voltage_header = new xat_msgs.HeaderFiller();
+		homing_cancelable = new Cancellable();
+		homing_in_proc = false;
 	}
 
 	public static int main(string[] args) {
@@ -329,6 +528,7 @@ class RotD : Object {
 		}
 
 		var ret = run();
+		conn.send_stop(new Stop.with_data(true, true));
 
 		HidApi.exit();
 		return ret;

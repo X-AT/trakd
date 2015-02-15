@@ -5,8 +5,9 @@ struct command_t {
 		START_HOMING	= 100,
 		STOP_HOMING	= 101,
 		HOMING_START	= 100,
-		HOMING_STOP	= 101,
-		MOTOR_STOP	= 200;
+		HOMING_CANCEL	= 101,
+		MOTOR_STOP	= 200,
+		TERMINATE_ALL	= 800;
 
 	header_t header;
 	int32_t command;
