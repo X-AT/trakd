@@ -6,6 +6,7 @@ add_subdirectory(hidapi)
 add_subdirectory(xat_msgs)
 add_subdirectory(xat_gpsd)
 add_subdirectory(xat_rotd)
+add_subdirectory(xat_mavlinkd)
 add_subdirectory(xat_scripts)
 
 # vim:set ts=2 sw=2 et:
