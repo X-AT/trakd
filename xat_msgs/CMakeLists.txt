@@ -39,6 +39,7 @@ add_custom_command(
   OUTPUT ${vala_msgs_c}
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lcm_message.c
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/header_filler.c
+  COMMAND mkdir -p ${CMAKE_BINARY_DIR}/include
   COMMAND mkdir -p ${CMAKE_BINARY_DIR}/vapi
   COMMAND ${VALA_EXECUTABLE}
   ARGS

@@ -93,18 +93,15 @@ macro(lcm_generate_messages)
     get_filename_component(msg_ws ${msg} NAME_WE)
     message(STATUS "processing: ${msg} ${target}")
     add_custom_command(
-      OUTPUT ${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${msg_ws}.hpp
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lua/${PROJECT_NAME}/${msg_ws}.lua
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/${PROJECT_NAME}.${msg_ws}.vala
-      COMMAND mkdir -p ${CMAKE_BINARY_DIR}/include
-      COMMAND ${LCM_GEN} --cpp-hpath ${CMAKE_BINARY_DIR}/include --cpp ${msg}
       COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/lua
       COMMAND ${LCM_GEN} --lpath ${CMAKE_CURRENT_BINARY_DIR}/lua --lua ${msg}
       COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/src
       COMMAND ${LCM_GEN} --vala-path ${CMAKE_CURRENT_BINARY_DIR}/src --vala ${msg}
       DEPENDS ${msg}
       )
-    add_custom_target(lcm-gen-${PROJECT_NAME}-${msg_ws} ALL DEPENDS ${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${msg_ws}.hpp)
+    add_custom_target(lcm-gen-${PROJECT_NAME}-${msg_ws} ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/src/${PROJECT_NAME}.${msg_ws}.vala)
   endforeach()
 endmacro()
 
