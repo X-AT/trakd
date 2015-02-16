@@ -1,6 +1,9 @@
 /* libgps.vapi
  *
  * Copyright (C) 2011 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+ * Copyright (C) 2015 Vladimir Ermakov <vooon341@gmail.com>
+ *
+ * Updated for libgps 5.1 API.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,45 +23,35 @@
 
 [CCode (lower_case_cprefix = "gps_", cheader_filename = "gps.h")]
 namespace Gps {
+    /* constants */
+    public const uint MAXTAGLEN;
+    public const uint MAXCHANNELS;
+    public const uint GPS_PRNMAX;
+    public const uint GPS_PATH_MAX;
+    public const uint MAXUSERDEVS;
 
-    /* delegates */
-    [CCode (has_target = false)]
-    public delegate void RawHookFunc( Device device, uint8[] data );
-
-    /* enums and constants */
-    [CCode (cname = "uint", has_type_id = false, cprefix = "WATCH_", cheader_filename = "gps.h")]
-    public enum StreamingPolicy
-    {
+    /* enum and flags */
+    [Flags]
+    [CCode (cname = "uint", has_type_id = false, cprefix = "WATCH_")]
+    public enum WatchFlags {
         ENABLE,
+        DISABLE,
         JSON,
         NMEA,
         RARE,
         RAW,
         SCALED,
-        NEWSTYLE,
-        OLDSTYLE,
+        TIMING,
         DEVICE,
-        DISABLE,
-        SUBFRAMES
+        SPLIT24,
+        PPS,
+        NEWSTYLE,
+        OLDSTYLE
     }
-    [CCode (cheader_filename = "gps.h")]
-    public const uint POLL_NONBLOCK;
-    [CCode (cheader_filename = "gps.h")]
-    public const uint MAXTAGLEN;
-    [CCode (cheader_filename = "gps.h")]
-    public const uint MAXCHANNELS;
-    [CCode (cheader_filename = "gps.h")]
-    public const uint GPS_PRNMAX;
-    [CCode (cheader_filename = "gps.h")]
-    public const uint GPS_PATH_MAX;
-    [CCode (cheader_filename = "gps.h")]
-    public const uint GPS_BUFFER_MAX;
-    [CCode (cheader_filename = "gps.h")]
-    public const uint MAXUSERDEVS;
 
-    [CCode (cname = "uint", has_type_id = false, cprefix = "", cheader_filename = "gps.h")]
-    public enum ChangeMask
-    {
+    [Flags]
+    [CCode (cname = "gps_mask_t", has_type_id = false, cprefix = "")]
+    public enum Mask {
         ONLINE_SET,
         TIME_SET,
         TIMERR_SET,
@@ -70,32 +63,34 @@ namespace Gps {
         STATUS_SET,
         MODE_SET,
         DOP_SET,
-        VERSION_SET,
         HERR_SET,
         VERR_SET,
         ATTITUDE_SET,
-        POLICY_SET,
         SATELLITE_SET,
-        RAW_SET,
-        USED_SET,
         SPEEDERR_SET,
         TRACKERR_SET,
         CLIMBERR_SET,
         DEVICE_SET,
         DEVICELIST_SET,
         DEVICEID_SET,
-        ERROR_SET,
         RTCM2_SET,
         RTCM3_SET,
         AIS_SET,
         PACKET_SET,
         SUBFRAME_SET,
-        AUXDATA_SET
+        GST_SET,
+        VERSION_SET,
+        POLICY_SET,
+        LOGMESSAGE_SET,
+        ERROR_SET,
+        TIMEDRIFT_SET,
+        EOF_SET
 
-        //[CCode (cname = "gps_maskdump", cheader_filename = "gps.h")]
+        //[CCode (cname = "gps_maskdump")]
         //public unowned string dump();
     }
 
+    [Flags]
     [CCode (cname = "int", has_type_id = false, cprefix = "SEEN_", cheader_filename = "gps.h")]
     public enum SeenFlags
     {
@@ -105,15 +100,14 @@ namespace Gps {
         AIS
     }
 
-    [CCode (cname = "uint", has_type_id = false, cprefix = "STATUS_", cheader_filename = "gps.h")]
-    public enum FixStatus
-    {
+    [CCode (cname = "int", has_type_id = false, cprefix = "STATUS_")]
+    public enum FixStatus {
         NO_FIX,
         FIX,
         DGPS_FIX,
     }
 
-    [CCode (cname = "uint", has_type_id = false, cprefix = "", cheader_filename = "gps.h")]
+    [CCode (cname = "int", has_type_id = false, cprefix = "")]
     public enum FixMode
     {
         MODE_NOT_SEEN,
@@ -123,14 +117,20 @@ namespace Gps {
     }
 
     /* static functions */
-    public static unowned string errstr( int errno );
-    public void enable_debug( int fd, Posix.FILE file );
+    public static unowned string errstr(int errno);
+    public void enable_debug(int fd, Posix.FILE file);
 
-    /* fix */
-    [CCode (cname = "struct gps_fix_t", destroy_function = "", cprefix = "gps_", cheader_filename = "gps.h")]
+    /* timestamp_t */
+    [SimpleType]
+    [CCode (cname = "timestamp_t", has_type_id = false)]
+    public struct TimeStamp : double {
+    }
+
+    /* fix_t */
+    [CCode (cname = "struct gps_fix_t", has_type_id = false, destroy_function = "")]
     public struct Fix
     {
-        public double time;
+        public TimeStamp time;
         public FixMode mode;
         public double ept;
         public double latitude;
@@ -146,14 +146,24 @@ namespace Gps {
         public double climb;
         public double epc;
 
-        public void clear_fix();
-        public void merge_fix( ChangeMask mask, Fix otherFix );
+        [CCode (cname = "gps_clear_fix")]
+        public void clear();
+
+        [CCode (cname = "gps_merge_fix")]
+        public void merge(Mask mask, Fix otherFix);
     }
 
+    /* gst_t */
+    /* rtcm2_t */
+    /* rtcm3_t */
+    /* almanac_t */
+    /* subframe_t */
+    /* ais_t */
+    /* attitude_t */
+
     /* dilution of precision */
-    [CCode (cname = "struct dop_t", destroy_function = "", cprefix = "", cheader_filename = "gps.h")]
-    public struct Dop
-    {
+    [CCode (cname = "struct dop_t", has_type_id = false, destroy_function = "", cprefix = "")]
+    public struct Dop {
         public double xdop;
         public double ydop;
         public double pdop;
@@ -161,31 +171,60 @@ namespace Gps {
         public double vdop;
         public double tdop;
         public double gdop;
+
+        [CCode (cname = "gps_clear_dop")]
+        public void clear();
     }
 
+    /* rawdata_t */
+    /* version_t */
+
     /* device configuration */
-    [CCode (cname = "struct devconfig_t", destroy_function = "", cprefix = "", cheader_filename = "gps.h")]
-    public struct DeviceConfig
-    {
+    [CCode (cname = "struct devconfig_t", has_type_id = false, destroy_function = "", cprefix = "")]
+    public struct DeviceConfig {
         public unowned string path;
         public SeenFlags flags;
         public unowned string driver;
         public unowned string subtype;
         public double activated;
-        uint baudrate;
-        uint stopbits;
-        char parity;
-        double cycle;
-        double mincycle;
-        int driver_mode;
+        public uint baudrate;
+        public uint stopbits;
+        public char parity;
+        public double cycle;
+        public double mincycle;
+        public int driver_mode;
     }
 
+    /* stream policy */
+    [CCode (cname = "struct policy_t", has_type_id = false, destroy_function = "")]
+    public struct Policy {
+        public bool watcher;
+        public bool json;
+        public bool nmea;
+        public int raw;
+        public bool scaled;
+        public bool timing;
+        public bool split24;
+        public bool pps;
+        public int loglevel;
+        public unowned string devpath;
+        public unowned string remote;
+    }
+
+    /* timedrift_t */
+
     /* device */
-    [CCode (cname = "struct gps_data_t", destroy_function = "gps_close", cprefix = "gps_", cheader_filename = "gps.h")]
-    public struct Device
-    {
-        public uint @set;
-        public double online;
+    [CCode (cname = "struct gps_data_t", has_type_id = false, destroy_function = "gps_close", cprefix = "gps_")]
+    public struct Device {
+        // special host values for Device.open()
+        [CCode (cprefix = "GPSD_")]
+        public const string SHARED_MEMORY;
+        [CCode (cprefix = "GPSD_")]
+        public const string DBUS_EXPORT;
+
+        public Mask @set;
+        public TimeStamp online;
+        public int gps_fd;
         public Fix fix;
         public double separation;
         public FixStatus status;
@@ -193,26 +232,36 @@ namespace Gps {
         public int used[];
         public Dop dop;
         public double epe;
-        public double skyview_time;
+        public TimeStamp skyview_time;
         public int satellites_visible;
         public int PRN[];
         public int elevation[];
         public int azimuth[];
         public double ss[];
         public DeviceConfig dev;
-        public StreamingPolicy policy;
+        public Policy policy;
 
-        [CCode (cname = "gps_open_r",instance_pos = -1)]
-        public int open( string server = "localhost", string port = "2947" );
+        /* tag[] */
+        /* union with rtcm2,3, subframe, ais, attitude, raw, gst,
+         * version, devices, error and timedrift
+         */
+
+        [CCode (cname = "gps_open", instance_pos = -1)]
+        public int open(string server = "localhost", string port = "2947");
 
         public void close();
 
         [PrintfFormat]
-        public size_t send( string format, ... );
-        public size_t read();
-        public bool waiting( int timeout );
-        public int stream( StreamingPolicy flags, void* data = null );
-        public void set_raw_hook( RawHookFunc func );
+        public int send(string format, ...);
+
+        public int read();
+
+        [CCode (instance_pos = -1)]
+        public int unpack(char *buf);
+
+        public bool waiting(int timeout);
+
+        public int stream(WatchFlags flags, void* data = null);
     }
 }
 
