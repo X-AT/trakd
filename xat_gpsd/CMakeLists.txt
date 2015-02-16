@@ -1,31 +1,41 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(xat_msgs CXX)
+project(xat_gpsd C)
 
 find_package(PkgConfig)
 find_package(LCM REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system program_options)
-find_package(console_bridge REQUIRED)
+find_package(Vala REQUIRED)
 pkg_check_modules(libgps REQUIRED libgps)
+pkg_check_modules(gobject2 REQUIRED gobject-2.0)
 
-include(EnableCXX11)
+include(UseVala)
+
+vala_precompile(VALA_C
+  src/gpsd.vala
+PACKAGES
+  libgps
+  lcm
+  xat_msgs
+OPTIONS
+  --thread
+  --vapidir=${CMAKE_CURRENT_SOURCE_DIR}/vapi
+  --vapidir=${CMAKE_BINARY_DIR}/vapi
+)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_BINARY_DIR}/include
-  ${Boost_INCLUDE_DIRS}
-  ${console_bridge_INCLUDE_DIRS}
   ${LCM_INCLUDE_DIRS}
+  ${gobject2_INCLUDE_DIRS}
   ${libgps_INCLUDE_DIRS}
 )
 
 add_executable(xat_gpsd
-  src/xat_gpsd.cpp
+  ${VALA_C}
 )
 target_link_libraries(xat_gpsd
-  ${Boost_LIBRARIES}
-  ${console_bridge_LIBRARIES}
+  xat_msgs
   ${LCM_LIBRARIES}
+  ${gobject2_LIBRARIES}
   ${libgps_LIBRARIES}
 )
 
