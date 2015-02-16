@@ -470,10 +470,20 @@ class RotD : Object {
 		homing_in_proc = false;
 	}
 
+	private static void sighandler(int signum) {
+		// restore original handler
+		Posix.signal(signum, null);
+		loop.quit();
+	}
+
 	public static int main(string[] args) {
 		message("rotd initializing");
 		// vala faq
 		new RotD();
+
+		// from FSO fraemwork
+		Posix.signal(Posix.SIGINT, sighandler);
+		Posix.signal(Posix.SIGTERM, sighandler);
 
 		if (!HidApi.init()) {
 			error("hidapi initialization.");
@@ -531,6 +541,7 @@ class RotD : Object {
 		conn.send_stop(new Stop.with_data(true, true));
 
 		HidApi.exit();
+		message("rotd quit");
 		return ret;
 	}
 }
