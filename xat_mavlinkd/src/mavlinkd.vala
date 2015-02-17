@@ -77,6 +77,7 @@ class MavlinkD {
 
 	public static int main(string[] args) {
 		message("mavlinkd initializing");
+		message("Mavlink headers build date: %s", Mavlink.BUILD_DATE);
 		new MavlinkD();
 
 		// from FSO fraemwork
