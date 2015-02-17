@@ -67,7 +67,6 @@ namespace MavConn {
 		public UDPConn.from_url(string url) {
 			// parse url
 			var url_sub = url.substring(6);
-			url_sub.strip();
 
 			var dog = url_sub.index_of_char('@');
 			assert(dog >= 0);
