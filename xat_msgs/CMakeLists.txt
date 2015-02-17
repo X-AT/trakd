@@ -17,6 +17,7 @@ lcm_add_message_files(
   joint_goal_t.lcm
   voltage_t.lcm
   command_t.lcm
+  heartbeat_t.lcm
 )
 
 lcm_generate_messages()

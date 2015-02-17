@@ -23,11 +23,44 @@ class MavlinkD {
 	};
 
 	private static void handle_heartbeat(ref Mavlink.Common.Heartbeat hb) {
-		message("heartbeat");
+		var lhb = new xat_msgs.heartbeat_t();
+
+		lhb.header = hb_header.next_now();
+
+		lcm.publish("xat/mav_heartbeat", lhb.encode());
 	}
 
 	private static void handle_gps_raw_int(ref Mavlink.Common.GpsRawInt gps) {
-		message("gps");
+		var fix = new xat_msgs.gps_fix_t();
+
+		fix.header = fix_header.next_now();
+
+		if (gps.fix_type < 2)
+			fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__NO_FIX;
+		else if (gps.fix_type == 2)
+			fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__2D_FIX;
+		else if (gps.fix_type > 2)
+			fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__3D_FIX;
+
+		// required data
+		fix.satellites_visible = (int8) gps.satellites_visible;
+
+		fix.latitude = gps.lat / 1E7;	// in degrees
+		fix.longitude = gps.lon / 1E7;
+		fix.altitude = gps.alt / 1E3f;	// meters
+
+		// optinal data
+		fix.eph = (gps.eph != uint16.MAX)? gps.eph / 1E2f : float.NAN;
+		fix.epv = (gps.epv != uint16.MAX)? gps.epv / 1E2f : float.NAN;
+
+		fix.track = (gps.cog != uint16.MAX)? gps.cog / 1E2f : float.NAN;
+		fix.ground_speed = (gps.vel != uint16.MAX)? gps.vel / 1E2f : float.NAN;
+
+		// no data
+		fix.climb_rate = float.NAN;
+		fix.satellites_used = -1;
+
+		lcm.publish("xat/mav_fix", fix.encode());
 	}
 
 	static construct {

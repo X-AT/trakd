@@ -1,0 +1,10 @@
+package xat_msgs;
+
+/* Mavlink heartbeat */
+struct heartbeat_t
+{
+	header_t header;
+
+	/* i think that i don't need any data here,
+	 * only recv timestamp */
+}
