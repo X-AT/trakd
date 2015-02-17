@@ -27,7 +27,8 @@ namespace MavConn {
 
 
 		public UDPConn(InetSocketAddress? bind_addr = null) {
-			this.with_sockaddr(bind_addr?? new InetSocketAddress.from_string("127.0.0.1", 14550));
+			// InetSocketAddress.from_string() does not exist on travis machines (Ubuntu 12.04)
+			this.with_sockaddr(bind_addr?? new InetSocketAddress(new InetAddress.loopback(SocketFamily.IPV4), 14550));
 		}
 
 		public UDPConn.with_sockaddr(InetSocketAddress bind_addr) {
