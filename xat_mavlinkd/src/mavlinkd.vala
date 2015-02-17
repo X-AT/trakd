@@ -1,6 +1,7 @@
 
 class MavlinkD {
 	private static Lcm.LcmNode? lcm;
+	private static MavConn.IConn? conn;
 	private static MainLoop loop;
 
 	private static xat_msgs.HeaderFiller hb_header;
@@ -61,7 +62,8 @@ class MavlinkD {
 			message("LCM ok.");
 		}
 
-		// XXX todo connect to MAV
+		// connect to MAV
+		conn = MavConn.IConn.open_url(mav_url);
 
 		// setup watch on LCM FD
 		var lcm_fd = lcm.get_fileno();
@@ -89,7 +91,15 @@ class MavlinkD {
 				}
 			});
 
-		// XXX "subscribe" to MAV topics
+		// setup watch on mavlink source
+		unowned Source mav_source = conn.source;
+		var loop_context = loop.get_context();
+		mav_source.attach(loop_context);
+
+		// "subscribe" to MAV topics
+		conn.message_received.connect((msg) => {
+				message("cb called!");
+			});
 
 		loop.run();
 		message("mavlinkd quit");

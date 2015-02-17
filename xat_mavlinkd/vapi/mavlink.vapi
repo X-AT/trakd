@@ -25,10 +25,17 @@ namespace Mavlink {
 		/* only used */
 	}
 
+	/* common/version.h */
+
+	[CCode (cprefix = "MAVLINK_")]
+	public const string BUILD_DATE;
+	[CCode (cprefix = "MAVLINK_")]
+	public const string WIRE_PROTOCOL_VERSION;
+
 	/* mavlink_types.h */
 
 	[CCode (cprefix = "MAVLINK_")]
-	public const size_t MAX_PAYLOAD_MEN;
+	public const size_t MAX_PAYLOAD_LEN;
 	[CCode (cprefix = "MAVLINK_")]
 	public const size_t NUM_NON_PAYLOAD_BYTES;
 
