@@ -57,7 +57,7 @@ namespace Mavlink {
 	/* protocol.h */
 
 	[CCode (cprefix = "mavlink_")]
-	public uint8 parse_char(uint8 chan, uint8 c, out Message r_message, out Status r_status);
+	public uint8 parse_char(uint8 chan, uint8 c, ref Message r_message, ref Status r_status);
 
 	/* messages */
 	namespace Common {

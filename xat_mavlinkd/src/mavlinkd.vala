@@ -22,6 +22,13 @@ class MavlinkD {
 		{null}
 	};
 
+	private static void handle_heartbeat(ref Mavlink.Common.Heartbeat hb) {
+		message("heartbeat");
+	}
+
+	private static void handle_gps_raw_int(ref Mavlink.Common.GpsRawInt gps) {
+		message("gps");
+	}
 
 	static construct {
 		loop = new MainLoop();
@@ -98,7 +105,22 @@ class MavlinkD {
 
 		// "subscribe" to MAV topics
 		conn.message_received.connect((msg) => {
-				message("cb called!");
+				switch (msg.msgid) {
+				case Mavlink.Common.Heartbeat.MSG_ID:
+					Mavlink.Common.Heartbeat hb = {};
+					hb.decode(msg);
+					handle_heartbeat(ref hb);
+					break;
+
+				case Mavlink.Common.GpsRawInt.MSG_ID:
+					Mavlink.Common.GpsRawInt gps = {};
+					gps.decode(msg);
+					handle_gps_raw_int(ref gps);
+					break;
+
+				default:
+					break;
+				}
 			});
 
 		loop.run();

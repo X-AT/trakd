@@ -49,7 +49,7 @@ namespace MavConn {
 						}
 
 						for (size_t idx = 0; idx < read; idx++) {
-							if (Mavlink.parse_char(0, buffer[idx], out recv_msg, out recv_status) != 0) {
+							if (Mavlink.parse_char(0, buffer[idx], ref recv_msg, ref recv_status) != 0) {
 								//debug(@"got message #$(recv_msg.msgid) len $(recv_msg.len)");
 								message_received(ref recv_msg);
 							}
