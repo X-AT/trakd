@@ -38,14 +38,15 @@ endforeach()
 # but here used more complex rules (lcm-gen then valac then gcc)
 add_custom_command(
   OUTPUT ${vala_msgs_c}
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lcm_message.c
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/header_filler.c
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/lcm_message.c
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/header_filler.c
   COMMAND mkdir -p ${CMAKE_BINARY_DIR}/include
   COMMAND mkdir -p ${CMAKE_BINARY_DIR}/vapi
   COMMAND ${VALA_EXECUTABLE}
   ARGS
     -C
-    -d ${CMAKE_CURRENT_BINARY_DIR}
+    -b ${CMAKE_CURRENT_BINARY_DIR}/src
+    -d ${CMAKE_CURRENT_BINARY_DIR}/src
     --header ${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}.h
     --internal-header ${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}_internal.h
     --vapi ${CMAKE_BINARY_DIR}/vapi/${PROJECT_NAME}.vapi
@@ -67,8 +68,8 @@ include_directories(
 )
 
 add_library(xat_msgs SHARED
-  ${CMAKE_CURRENT_BINARY_DIR}/lcm_message.c
-  ${CMAKE_CURRENT_BINARY_DIR}/header_filler.c
+  ${CMAKE_CURRENT_BINARY_DIR}/src/lcm_message.c
+  ${CMAKE_CURRENT_BINARY_DIR}/src/header_filler.c
   ${vala_msgs_c}
 )
 target_link_libraries(xat_msgs

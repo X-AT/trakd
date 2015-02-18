@@ -13,8 +13,7 @@ install:
 - wget $CI_BINARIES_PATH/$MAVLINK_DEB
 - sudo dpkg -i $MAVLINK_DEB
 script:
-- mkdir -p build
-- cd build && cmake ..
+- cmake .
 - make VERBOSE=1
 notifications:
   webhooks:
