@@ -10,9 +10,18 @@ namespace MavConn {
 
 		public static IConn? open_url(string url) {
 			var proto = GLib.Uri.parse_scheme(url);
-			assert(proto == "udp");
 
-			return new UDPConn.from_url(url);
+			switch (proto) {
+			case "udp":
+				return new UDPConn.from_url(url);
+
+			case "tcp":
+				return null;
+
+			default:
+				warn_if_reached();
+				return null;
+			}
 		}
 	}
 
@@ -65,6 +74,7 @@ namespace MavConn {
 		}
 
 		public UDPConn.from_url(string url) {
+			// XXX parese proto again
 			// parse url
 			var url_sub = url.substring(6);
 
