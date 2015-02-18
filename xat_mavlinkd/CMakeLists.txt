@@ -13,7 +13,7 @@ include(UseVala)
 
 vala_precompile(VALA_C
   src/mavlinkd.vala
-  src/transport.vala
+  src/mavconn.vala
 PACKAGES
   gio-2.0
   mavlink
