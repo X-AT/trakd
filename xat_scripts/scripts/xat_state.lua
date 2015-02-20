@@ -33,7 +33,7 @@ function handler_joint_state(channel, data)
 end
 
 lc = lcm.lcm.new()
-sub = lc:subscribe("xat/rot_state", handler_joint_state)
+sub = lc:subscribe("xat/rot/state", handler_joint_state)
 
 while true do
 	lc:handle()

@@ -155,7 +155,7 @@ class GpsD : Object {
 				}
 
 				var msg = make_fix();
-				lcm.publish("xat/home_fix", msg.encode());
+				lcm.publish("xat/home/fix", msg.encode());
 				return true;
 			});
 

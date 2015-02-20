@@ -16,5 +16,5 @@ msg.header = xat_msgs.header_t:new()
 msg.azimuth_angle = arg[1]
 msg.elevation_angle = arg[2]
 
-lc:publish("xat/rot_goal", msg:encode())
+lc:publish("xat/rot/goal", msg:encode())
 print "Goal published."

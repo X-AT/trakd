@@ -364,7 +364,7 @@ class RotD : Object {
 		ps.azimuth_angle = az_mc.to_rad(status.azimuth_position);
 		ps.elevation_angle = el_mc.to_rad(status.elevation_position);
 
-		lcm.publish("xat/rot_state", ps.encode());
+		lcm.publish("xat/rot/state", ps.encode());
 		// todo terminate on error
 		return true;
 	}
@@ -442,7 +442,7 @@ class RotD : Object {
 					error("Message error: %s", e.message);
 				}
 			});
-		lcm.subscribe("xat/rot_goal",
+		lcm.subscribe("xat/rot/goal",
 			(rbuf, channel, ud) => {
 				try {
 					var msg = new xat_msgs.joint_goal_t();
@@ -477,18 +477,12 @@ class RotD : Object {
 	}
 
 	public static int main(string[] args) {
-		message("rotd initializing");
 		// vala faq
 		new RotD();
 
 		// from FSO fraemwork
 		Posix.signal(Posix.SIGINT, sighandler);
 		Posix.signal(Posix.SIGTERM, sighandler);
-
-		if (!HidApi.init()) {
-			error("hidapi initialization.");
-			return 1;
-		}
 
 		try {
 			var opt_context = new OptionContext("");
@@ -518,6 +512,12 @@ class RotD : Object {
 		} catch (OptionError e) {
 			stderr.printf("error: %s\n", e.message);
 			stderr.printf("Run '%s --help' to see a full list of available command line options.\n", args[0]);
+			return 1;
+		}
+
+		message("rotd initializing");
+		if (!HidApi.init()) {
+			error("hidapi initialization.");
 			return 1;
 		}
 
