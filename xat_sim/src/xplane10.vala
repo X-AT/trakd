@@ -7,6 +7,7 @@ class Xplane10 : Object {
 	private static Lcm.LcmNode? lcm;
 	private static MainLoop loop;
 
+	private static xat_msgs.HeaderFiller hb_header;
 	private static xat_msgs.HeaderFiller fix_header;
 
 	// socket watchers
@@ -19,6 +20,9 @@ class Xplane10 : Object {
 	private static uint8 msg_data[8192];
 	private static MemoryInputStream msg_data_istream = null;
 
+	// flags
+	private static bool xplane_connected = false;
+
 	// main options
 	private static int xplane_port = 49005;
 	private static string? lcm_url = null;
@@ -29,6 +33,63 @@ class Xplane10 : Object {
 
 		{null}
 	};
+
+#if 0
+	// QGC
+	private static void handle_speed(float[] f) {
+		const float K2M = 0.44704f;	// knot to m/s
+
+		var ind_airspeed = f[5] * K2M;
+		var true_airspeed = f[6] * K2M;
+		var ground_speed = f[7] * K2M;
+
+		debug(@"SIM speeds: ASi $ind_airspeed, ASt $true_airspeed, GS $ground_speed");
+	}
+
+	// QGC
+	private static void handle_rpy(float[] f) {
+		const float D2R = 1.0f / 180.0f * (float) Math.PI;	// deg to rad
+
+		var pitch = f[0] * D2R;
+		var roll = f[1] * D2R;
+		var yaw = f[2] * D2R;
+
+		debug(@"SIM rpy: $roll $pitch $yaw");
+	}
+#endif
+
+	// QGC
+	private static void handle_lla(float[] f) {
+		const float F2M = 0.3048f;	// feet to meter
+
+		var lat = f[0];
+		var lon = f[1];
+		var alt = f[2] * F2M;		// MSL
+		var alt_agl = f[3] * F2M;	// AGL
+
+		//debug(@"SIM LLA: $lat $lon $alt ($alt_agl)");
+
+		var fix = new xat_msgs.gps_fix_t();
+
+		fix.header = fix_header.next_now();
+
+		// data from message
+		fix.latitude = (double) lat;
+		fix.longitude = (double) lon;
+		fix.altitude = alt;
+
+		// sim-constants
+		fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__3D_FIX;
+		fix.satellites_visible = -1;	// sim
+		fix.satellites_used = -1;
+		fix.epv = 1.0f;			// 1 meter
+		fix.eph = 1.0f;
+		fix.track = float.NAN;		// for now
+		fix.ground_speed = float.NAN;	// for now
+		fix.climb_rate = float.NAN;
+
+		lcm.publish("xat/mav/fix", fix.encode());
+	}
 
 	private static void process_xplane_message(ssize_t rsize) {
 		var data_size = rsize - msg_header.length;
@@ -43,6 +104,11 @@ class Xplane10 : Object {
 			size_t d_count = data_size / (sizeof(int32) + sizeof(float) * 8);
 			//debug(@"DATA: $data_size bytes => $d_count messages");
 
+			if (xplane_connected == false) {
+				message("X-Plane connected.");
+				xplane_connected = true;
+			}
+
 			var dis = new DataInputStream(new MemoryInputStream.from_data(msg_data, null));
 			// Assume that X-Plane running on x86 or amd64 machine
 			dis.byte_order = DataStreamByteOrder.LITTLE_ENDIAN;
@@ -51,11 +117,39 @@ class Xplane10 : Object {
 				float d_data[8];
 
 				var d_index = dis.read_int32();
-				for (size_t it = 0; it < d_data.length; it++)
-					d_data[it] = (float) dis.read_int32();
+				for (size_t it = 0; it < d_data.length; it++) {
+					// ugly, but works
+					d_data[it] = *((float *) (&dis.read_int32()));
+				}
 
 
+				// index from XPDisplay PacketParser10xx.java
 				switch (d_index) {
+#if 0
+				case 3:		// speed
+					handle_speed(d_data);
+					break;
+
+				case 17:	// pitch roll heading
+					handle_rpy(d_data);
+					break;
+#endif
+
+				case 20:	// lat long alt
+					handle_lla(d_data);
+					break;
+
+				case 0:		// frame rate
+				case 1:		// times
+				case 2:		// sim state
+				case 5:		// weather
+				case 6:		// atmosphere
+				case 19:	// compass
+				case 21:	// loc vel dist
+				case 22:	// all lat
+				case 23:	// all lon
+				case 24:	// all alt
+				case 38:	// prop rpm
 				default:
 					//debug(@"DATA #$d_index: $(d_data[0]) $(d_data[1]) $(d_data[2]) $(d_data[3]) $(d_data[4]) $(d_data[5]) $(d_data[7])");
 					break;
@@ -66,6 +160,7 @@ class Xplane10 : Object {
 
 	static construct {
 		loop = new MainLoop();
+		hb_header = new xat_msgs.HeaderFiller();
 		fix_header = new xat_msgs.HeaderFiller();
 	}
 
@@ -165,6 +260,16 @@ class Xplane10 : Object {
 			});
 
 		source.attach(loop.get_context());
+
+		// heartbeat
+		Timeout.add(1000, () => {
+				var hb = new xat_msgs.heartbeat_t();
+
+				hb.header = hb_header.next_now();
+
+				lcm.publish("xat/mav/heartbeat", hb.encode());
+				return true;
+			});
 
 		message("xplane 10 sim started.");
 		loop.run();
