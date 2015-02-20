@@ -98,5 +98,25 @@ namespace Mavlink {
 			[CCode (cname = "mavlink_msg_gps_raw_int_decode", instance_pos = -1)]
 			public void decode(Message mgs);
 		}
+
+		/* mavlink_msg_global_position_int.h */
+		[CCode (cname = "mavlink_global_position_int_t", has_type_id = false)]
+		public struct GlobalPositionInt {
+			public uint32 time_boot_ms;
+			public int32 lat;
+			public int32 lon;
+			public int32 alt;
+			public int32 relative_alt;
+			public int16 vx;
+			public int16 vy;
+			public int16 vz;
+			public uint16 hdg;
+
+			[CCode (cname = "MAVLINK_MSG_ID_GLOBAL_POSITION_INT")]
+			public const uint8 MSG_ID;
+
+			[CCode (cname = "mavlink_msg_global_position_int_decode", instance_pos = -1)]
+			public void decode(Message mgs);
+		}
 	}
 }

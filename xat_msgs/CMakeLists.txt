@@ -12,12 +12,14 @@ include(UseVala)
 lcm_add_message_files(
   FILES
   header_t.lcm
+  vector_t.lcm
   gps_fix_t.lcm
   joint_state_t.lcm
   joint_goal_t.lcm
   voltage_t.lcm
   command_t.lcm
   heartbeat_t.lcm
+  global_position_t.lcm
 )
 
 lcm_generate_messages()

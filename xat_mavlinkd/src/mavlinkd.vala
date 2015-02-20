@@ -6,6 +6,7 @@ class MavlinkD {
 
 	private static xat_msgs.HeaderFiller hb_header;
 	private static xat_msgs.HeaderFiller fix_header;
+	private static xat_msgs.HeaderFiller gp_header;
 
 	// socket watchers
 	private static IOChannel lcm_iochannel = null;
@@ -27,7 +28,7 @@ class MavlinkD {
 
 		lhb.header = hb_header.next_now();
 
-		lcm.publish("xat/mav_heartbeat", lhb.encode());
+		lcm.publish("xat/mav/heartbeat", lhb.encode());
 	}
 
 	private static void handle_gps_raw_int(ref Mavlink.Common.GpsRawInt gps) {
@@ -60,13 +61,32 @@ class MavlinkD {
 		fix.climb_rate = float.NAN;
 		fix.satellites_used = -1;
 
-		lcm.publish("xat/mav_fix", fix.encode());
+		lcm.publish("xat/mav/fix", fix.encode());
+	}
+
+	private static void handle_global_position_int(ref Mavlink.Common.GlobalPositionInt gp) {
+		var lgp = new xat_msgs.global_position_t();
+
+		lgp.header = gp_header.next_now();
+
+		// fill message
+		lgp.latitude = gp.lat / 1E7;
+		lgp.longitude = gp.lon / 1E7;
+		lgp.altitude = gp.alt / 1E3f;
+		lgp.relative_altitude = gp.relative_alt / 1E3f;
+		lgp.velocity.x = gp.vx / 1E2f;
+		lgp.velocity.y = gp.vy / 1E2f;
+		lgp.velocity.z = gp.vz / 1E2f;
+		lgp.heading = (gp.hdg != uint16.MAX)? gp.hdg / 1E2f : float.NAN;
+
+		lcm.publish("xat/mav/global_position", lgp.encode());
 	}
 
 	static construct {
 		loop = new MainLoop();
 		hb_header = new xat_msgs.HeaderFiller();
 		fix_header = new xat_msgs.HeaderFiller();
+		gp_header = new xat_msgs.HeaderFiller();
 	}
 
 	private static void sighandler(int signum) {
@@ -150,6 +170,12 @@ class MavlinkD {
 					Mavlink.Common.GpsRawInt gps = {};
 					gps.decode(msg);
 					handle_gps_raw_int(ref gps);
+					break;
+
+				case Mavlink.Common.GlobalPositionInt.MSG_ID:
+					Mavlink.Common.GlobalPositionInt gp = {};
+					gp.decode(msg);
+					handle_global_position_int(ref gp);
 					break;
 
 				default:

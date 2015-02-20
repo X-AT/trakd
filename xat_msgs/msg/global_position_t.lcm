@@ -1,0 +1,12 @@
+package xat_msgs;
+
+/* represent GLOBAL_POSITION_INT */
+struct global_position_t {
+	header_t header;
+	double latitude;
+	double longitude;
+	float altitude;
+	float relative_altitude;
+	vector_t velocity;	// NED
+	float heading;		// deg, [0..360)
+}
