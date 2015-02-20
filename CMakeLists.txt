@@ -8,6 +8,7 @@ add_subdirectory(xat_gpsd)
 add_subdirectory(xat_rotd)
 add_subdirectory(xat_mavlinkd)
 add_subdirectory(xat_sim)
+add_subdirectory(xat_trakd)
 add_subdirectory(xat_scripts)
 
 # vim:set ts=2 sw=2 et:
