@@ -16,7 +16,8 @@ class Xplane10 : Object {
 
 	// recv buffers
 	private static uint8 msg_header[5];
-	private static uint8[] msg_data;
+	private static uint8 msg_data[8192];
+	private static MemoryInputStream msg_data_istream = null;
 
 	// main options
 	private static int xplane_port = 49005;
@@ -29,10 +30,43 @@ class Xplane10 : Object {
 		{null}
 	};
 
+	private static void process_xplane_message(ssize_t rsize) {
+		var data_size = rsize - msg_header.length;
+
+		if (data_size <= 0) {
+			warning("SIM: short read");
+			return;
+		}
+
+		// we need only DATA blocks
+		if (Memory.cmp(msg_header, "DATA", 4) == 0) {
+			size_t d_count = data_size / (sizeof(int32) + sizeof(float) * 8);
+			//debug(@"DATA: $data_size bytes => $d_count messages");
+
+			var dis = new DataInputStream(new MemoryInputStream.from_data(msg_data, null));
+			// Assume that X-Plane running on x86 or amd64 machine
+			dis.byte_order = DataStreamByteOrder.LITTLE_ENDIAN;
+
+			for (size_t didx = 0; didx < d_count; didx++) {
+				float d_data[8];
+
+				var d_index = dis.read_int32();
+				for (size_t it = 0; it < d_data.length; it++)
+					d_data[it] = (float) dis.read_int32();
+
+
+				switch (d_index) {
+				default:
+					//debug(@"DATA #$d_index: $(d_data[0]) $(d_data[1]) $(d_data[2]) $(d_data[3]) $(d_data[4]) $(d_data[5]) $(d_data[7])");
+					break;
+				}
+			}
+		}
+	}
+
 	static construct {
 		loop = new MainLoop();
 		fix_header = new xat_msgs.HeaderFiller();
-		msg_data = new uint8[8 * 1024];	// maximum payload is 8 KiB
 	}
 
 	private static void sighandler(int signum) {
@@ -116,16 +150,15 @@ class Xplane10 : Object {
 						InputVector() { buffer = msg_data, size = msg_data.length }
 					};
 
-					// i want only read vector data
-					var rsize = s.receive_message(null, vec, null, SocketMsgFlags.NONE);
-					if (rsize >= msg_header.length)
-						debug("got data");
-						//process_message(rsize);
-					else {
-						error("XXX receive error.");
+					try {
+						// i want only read vector data
+						var rsize = s.receive_message(null, vec, null, SocketMsgFlags.NONE);
+						process_xplane_message(rsize);
+					} catch(Error e) {
+						error("SIM: recvmsg error: %s", e.message);
 					}
 				} else {
-					error("XXX cond!");
+					error("SIM: poll error!");
 				}
 
 				return true;
