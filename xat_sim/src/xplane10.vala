@@ -1,4 +1,8 @@
-
+/**
+ * Publish simulated MAV data
+ *
+ * X-plane protocol spec: http://www.nuclearprojects.com/xplane/xplaneref.html
+ */
 class Xplane10 : Object {
 	private static Lcm.LcmNode? lcm;
 	private static MainLoop loop;
@@ -8,15 +12,18 @@ class Xplane10 : Object {
 	// socket watchers
 	private static IOChannel lcm_iochannel = null;
 	private static uint lcm_watch_id;
+	private static Socket socket = null;
+
+	// recv buffers
+	private static uint8 msg_header[5];
+	private static uint8[] msg_data;
 
 	// main options
-	private static string? xplane_host = null;
-	private static int xplane_port = 0;
+	private static int xplane_port = 49005;
 	private static string? lcm_url = null;
 
 	private const GLib.OptionEntry[] options = {
 		{"lcm-url", 'l', 0, OptionArg.STRING, ref lcm_url, "LCM connection", "URL"},
-		{"xplane-host", 'h', 0, OptionArg.STRING, ref xplane_host, "Host running X-Plane", "HOST"},
 		{"xplane-port", 'p', 0, OptionArg.INT, ref xplane_port, "X-Plane data out stream", "PORT"},
 
 		{null}
@@ -25,6 +32,7 @@ class Xplane10 : Object {
 	static construct {
 		loop = new MainLoop();
 		fix_header = new xat_msgs.HeaderFiller();
+		msg_data = new uint8[8 * 1024];	// maximum payload is 8 KiB
 	}
 
 	private static void sighandler(int signum) {
@@ -88,9 +96,44 @@ class Xplane10 : Object {
 				}
 			});
 
-		// XXX connect to X-Plane
-		// XXX make data reader for X-Plane DATA
+		// X-Plane UDP out
+		try {
+			var sa = new InetSocketAddress(new InetAddress.any(SocketFamily.IPV4), (uint16) xplane_port);
+			socket = new Socket(SocketFamily.IPV4, SocketType.DATAGRAM, SocketProtocol.UDP);
+			socket.bind(sa, true);
+			message(@"X-Plane socket opened: $(sa.address):$(sa.port)");
+		} catch (Error e) {
+			error("Socket: %s", e.message);
+			return 1;
+		}
 
+		// make reader source
+		var source = socket.create_source(IOCondition.IN | IOCondition.ERR | IOCondition.HUP);
+		source.set_callback((s, cond) => {
+				if ((cond & IOCondition.IN) == IOCondition.IN) {
+					InputVector vec[2] = {
+						InputVector() { buffer = msg_header, size = msg_header.length },
+						InputVector() { buffer = msg_data, size = msg_data.length }
+					};
+
+					// i want only read vector data
+					var rsize = s.receive_message(null, vec, null, SocketMsgFlags.NONE);
+					if (rsize >= msg_header.length)
+						debug("got data");
+						//process_message(rsize);
+					else {
+						error("XXX receive error.");
+					}
+				} else {
+					error("XXX cond!");
+				}
+
+				return true;
+			});
+
+		source.attach(loop.get_context());
+
+		message("xplane 10 sim started.");
 		loop.run();
 		message("xplane 10 sim quit");
 		return 0;
