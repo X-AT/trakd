@@ -50,7 +50,7 @@ namespace MavConn {
 
 		public UDPConn(InetSocketAddress? bind_addr = null) {
 			// InetSocketAddress.from_string() does not exist on travis machines (Ubuntu 12.04)
-			this.with_sockaddr(bind_addr?? new InetSocketAddress(new InetAddress.loopback(SocketFamily.IPV4), 14550));
+			this.with_sockaddr(bind_addr?? new InetSocketAddress(new InetAddress.any(SocketFamily.IPV4), 14550));
 		}
 
 		public UDPConn.with_sockaddr(InetSocketAddress bind_addr) {
@@ -99,7 +99,7 @@ namespace MavConn {
 			var bind_pair = url_sub.substring(0, dog);
 			string bind_host;
 			uint16 bind_port;
-			url_parse_host_port(bind_pair, out bind_host, out bind_port, "localhost", 14550);
+			url_parse_host_port(bind_pair, out bind_host, out bind_port, "0.0.0.0", 14550);
 
 			// TODO parse ?ids=x,y
 

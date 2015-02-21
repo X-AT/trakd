@@ -88,6 +88,21 @@ class TrakD : Object {
 				}
 			});
 
+		lcm.subscribe("xat/home/fix",
+			(rbuf, channel, ud) => {
+				// TODO update home position
+			});
+
+		lcm.subscribe("xat/mav/fix",
+			(rbuf, channel, ud) => {
+				// TODO handle MAV position
+			});
+
+		lcm.subscribe("xat/mav/global_position",
+			(rbuf, channel, ud) => {
+				// MAV may send fused position
+			});
+
 
 		message("trakd started.");
 		loop.run();
