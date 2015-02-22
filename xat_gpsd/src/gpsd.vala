@@ -7,10 +7,8 @@ class GpsD : Object {
 	private static xat_msgs.HeaderFiller fix_header;
 
 	// socket watchers
-	private static IOChannel lcm_iochannel = null;
-	private static uint lcm_watch_id;
-	private static IOChannel gpsd_iochannel = null;
-	private static uint gpsd_watch_id;
+	private static IOChannel lcm_iochannel;
+	private static IOChannel gpsd_iochannel;
 
 	// main options
 	private static string? gpsd_host = null;
@@ -75,7 +73,6 @@ class GpsD : Object {
 	}
 
 	public static int main(string[] args) {
-		message("gpsd initializing");
 		new GpsD();
 
 		// from FSO fraemwork
@@ -93,6 +90,7 @@ class GpsD : Object {
 			return 1;
 		}
 
+		message("gpsd initializing");
 		lcm = new Lcm.LcmNode(lcm_url);
 		if (lcm == null) {
 			error("LCM connection fail.");
@@ -117,7 +115,7 @@ class GpsD : Object {
 		// setup watch on LCM FD
 		var lcm_fd = lcm.get_fileno();
 		lcm_iochannel = new IOChannel.unix_new(lcm_fd);
-		lcm_watch_id = lcm_iochannel.add_watch(
+		lcm_iochannel.add_watch(
 			IOCondition.IN | IOCondition.ERR | IOCondition.HUP,
 			(source, condition) => {
 				lcm.handle();
@@ -129,8 +127,8 @@ class GpsD : Object {
 		lcm.subscribe("xat/command",
 			(rbuf, channel, ud) => {
 				try {
-					var msg = new xat_msgs.command_t();
-					msg.decode(rbuf.data);
+					var msg = new xat_msgs.command_t.from_rbuf(rbuf);
+
 					if (msg.command == xat_msgs.command_t.TERMINATE_ALL) {
 						message("Requested to quit.");
 						loop.quit();
@@ -143,7 +141,7 @@ class GpsD : Object {
 		// setup watch on GPSd FD
 		// (valid only for usual networked connection)
 		gpsd_iochannel = new IOChannel.unix_new(gps.gps_fd);
-		gpsd_watch_id = gpsd_iochannel.add_watch(
+		gpsd_iochannel.add_watch(
 			IOCondition.IN | IOCondition.ERR | IOCondition.HUP,
 			(source, condition) => {
 				var r_ret = gps.read();
@@ -154,11 +152,16 @@ class GpsD : Object {
 					return true;
 				}
 
-				var msg = make_fix();
-				lcm.publish("xat/home/fix", msg.encode());
+				try {
+					var msg = make_fix();
+					lcm.publish("xat/home/fix", msg.encode());
+				} catch (Lcm.MessageError e) {
+					error("Message error: %s", e.message);
+				}
 				return true;
 			});
 
+		message("gpsd started.");
 		loop.run();
 		message("gpsd quit");
 		return 0;

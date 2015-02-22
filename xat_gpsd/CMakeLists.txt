@@ -29,17 +29,17 @@ include_directories(
   ${libgps_INCLUDE_DIRS}
 )
 
-add_executable(xat_gpsd
+add_executable(xat-gpsd
   ${VALA_C}
 )
-target_link_libraries(xat_gpsd
+target_link_libraries(xat-gpsd
   xat_msgs
   ${LCM_LIBRARIES}
   ${gobject2_LIBRARIES}
   ${libgps_LIBRARIES}
 )
 
-install(TARGETS xat_gpsd
+install(TARGETS xat-gpsd
   RUNTIME DESTINATION bin
 )
 
