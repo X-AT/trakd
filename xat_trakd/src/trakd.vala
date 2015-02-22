@@ -90,7 +90,7 @@ class TrakD : Object {
 
 		try {
 			var opt_context = new OptionContext("");
-			opt_context.set_summary("tracking goal solver node.");
+			opt_context.set_summary("Tracking goal solver node.");
 			opt_context.set_description("This node calculates goal for joints.");
 			opt_context.set_help_enabled(true);
 			opt_context.add_main_entries(options, null);

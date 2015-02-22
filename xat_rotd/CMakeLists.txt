@@ -34,10 +34,10 @@ include_directories(
   ${gio_INCLUDE_DIRS}
 )
 
-add_executable(xat_rotd
+add_executable(xat-rotd
   ${VALA_C}
 )
-target_link_libraries(xat_rotd
+target_link_libraries(xat-rotd
   xat_msgs
   hidapi-hidraw
   ${LCM_LIBRARIES}
@@ -45,7 +45,7 @@ target_link_libraries(xat_rotd
   ${gio_LIBRARIES}
 )
 
-install(TARGETS xat_rotd
+install(TARGETS xat-rotd
   RUNTIME DESTINATION bin
 )
 

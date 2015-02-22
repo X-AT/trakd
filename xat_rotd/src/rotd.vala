@@ -47,7 +47,6 @@ class RotD : Object {
 
 	// lcm polling
 	private static IOChannel lcm_iochannel = null;
-	private static uint lcm_watch_id = 0;
 
 	// homing
 	private static Cancellable homing_cancelable;
@@ -339,12 +338,6 @@ class RotD : Object {
 		// todo check send error
 	}
 
-	private static bool lcm_watch_callback(IOChannel source, IOCondition condition) {
-		lcm.handle();
-		// todo check handle error
-		return true;
-	}
-
 	// -*- timer callbacks -*-
 
 	private static bool timer_publish_status() {
@@ -381,83 +374,6 @@ class RotD : Object {
 		return true;
 	}
 
-	// -*- main loop -*-
-
-	private static int init() {
-		// homing canceled by default
-		homing_cancelable.cancel();
-
-		try {
-			// get device caps, TODO parse it
-			var devinfo = conn.get_info();
-			message("Device caps: %s", devinfo.device_caps_str);
-
-			// stop motors
-			conn.send_stop(new Stop.with_data(true, true));
-
-			// log current status
-			var status = conn.get_status();
-			debug_status(status);
-
-			// get old settings
-			var old_ss = conn.get_stepper_settings();
-			debug_stepper_settings(old_ss, "Old");
-
-			// apply new settings
-			message("Apply tracking settings");
-			conn.set_stepper_settings(tracking_settings);
-
-		} catch (IOChannelError e) {
-			error("Device io error: %s", e.message);
-			return 1;
-		}
-
-		return 0;
-	}
-
-	public static int run() {
-		// initialize
-		if (init() != 0)
-			return 1;
-
-		// start periodic jobs
-		Timeout.add(STATUS_PERIOD_MS, timer_publish_status);
-		Timeout.add(BAT_VOLTAGE_PERIOD_MS, timer_publish_bat_voltage);
-
-		// setup watch on LCM FD
-		var fd = lcm.get_fileno();
-		lcm_iochannel = new IOChannel.unix_new(fd);
-		lcm_watch_id = lcm_iochannel.add_watch(
-				IOCondition.IN | IOCondition.ERR | IOCondition.HUP,
-				lcm_watch_callback);
-
-		// subscribe to topics
-		lcm.subscribe("xat/command",
-			(rbuf, channel, ud) => {
-				try {
-					var msg = new xat_msgs.command_t();
-					msg.decode(rbuf.data);
-					handle_command(msg);
-				} catch (Lcm.MessageError e) {
-					error("Message error: %s", e.message);
-				}
-			});
-		lcm.subscribe("xat/rot/goal",
-			(rbuf, channel, ud) => {
-				try {
-					var msg = new xat_msgs.joint_goal_t();
-					msg.decode(rbuf.data);
-					handle_joint_goal(msg);
-				} catch (Lcm.MessageError e) {
-					error("Message error: %s", e.message);
-				}
-			});
-
-		message("rotd started.");
-		loop.run();
-		return 0;
-	}
-
 	static construct {
 		loop = new MainLoop();
 		az_mc = new MotConv();
@@ -466,7 +382,9 @@ class RotD : Object {
 		tracking_settings = new StepperSettings();
 		status_header = new xat_msgs.HeaderFiller();
 		bat_voltage_header = new xat_msgs.HeaderFiller();
+		// homing canceled by default
 		homing_cancelable = new Cancellable();
+		homing_cancelable.cancel();
 		homing_in_proc = false;
 	}
 
@@ -477,7 +395,6 @@ class RotD : Object {
 	}
 
 	public static int main(string[] args) {
-		// vala faq
 		new RotD();
 
 		// from FSO fraemwork
@@ -486,6 +403,8 @@ class RotD : Object {
 
 		try {
 			var opt_context = new OptionContext("");
+			opt_context.set_summary("ROT device control node");
+			opt_context.set_description("This node tells ROT board their goal and publish current status.");
 			opt_context.set_help_enabled(true);
 			opt_context.add_main_entries(options, null);
 			opt_context.parse(ref args);
@@ -537,11 +456,76 @@ class RotD : Object {
 			return 1;
 		}
 
-		var ret = run();
-		conn.send_stop(new Stop.with_data(true, true));
+		// get device caps, TODO parse it
+		try {
+			var devinfo = conn.get_info();
+			message("Device caps: %s", devinfo.device_caps_str);
 
+			// stop motors
+			conn.send_stop(new Stop.with_data(true, true));
+
+			// log current status
+			var status = conn.get_status();
+			debug_status(status);
+
+			// get old settings
+			var old_ss = conn.get_stepper_settings();
+			debug_stepper_settings(old_ss, "Old");
+
+			// apply new settings
+			message("Apply tracking settings");
+			conn.set_stepper_settings(tracking_settings);
+
+		} catch (IOChannelError e) {
+			error("Device io error: %s", e.message);
+			return 1;
+		}
+
+		// start periodic jobs
+		Timeout.add(STATUS_PERIOD_MS, timer_publish_status);
+		Timeout.add(BAT_VOLTAGE_PERIOD_MS, timer_publish_bat_voltage);
+
+		// setup watch on LCM FD
+		lcm_iochannel = new IOChannel.unix_new(lcm.get_fileno());
+		lcm_iochannel.add_watch(
+			IOCondition.IN | IOCondition.ERR | IOCondition.HUP,
+			(source, condition) => {
+				if (lcm.handle() < 0) {
+					error("lcm handle failure");
+					loop.quit();
+				}
+				return true;
+			});
+
+		// subscribe to topics
+		lcm.subscribe("xat/command",
+			(rbuf, channel, ud) => {
+				try {
+					var msg = new xat_msgs.command_t.from_rbuf(rbuf);
+					handle_command(msg);
+				} catch (Lcm.MessageError e) {
+					error("Message error: %s", e.message);
+				}
+			});
+
+		lcm.subscribe("xat/rot/goal",
+			(rbuf, channel, ud) => {
+				try {
+					var msg = new xat_msgs.joint_goal_t.from_rbuf(rbuf);
+					handle_joint_goal(msg);
+				} catch (Lcm.MessageError e) {
+					error("Message error: %s", e.message);
+				}
+			});
+
+
+		message("rotd started.");
+		loop.run();
+
+		// send stop before quit
+		conn.send_stop(new Stop.with_data(true, true));
 		HidApi.exit();
 		message("rotd quit");
-		return ret;
+		return 0;
 	}
 }
