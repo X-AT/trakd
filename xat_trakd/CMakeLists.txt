@@ -12,6 +12,7 @@ include(UseVala)
 
 vala_precompile(VALA_C
   src/trakd.vala
+  src/geo.vala
 PACKAGES
   gio-2.0
   lcm
@@ -28,17 +29,18 @@ include_directories(
   ${gio_INCLUDE_DIRS}
 )
 
-add_executable(xat_trakd
+add_executable(xat-trakd
   ${VALA_C}
 )
-target_link_libraries(xat_trakd
+target_link_libraries(xat-trakd
+  m
   xat_msgs
   ${LCM_LIBRARIES}
   ${gobject2_LIBRARIES}
   ${gio_LIBRARIES}
 )
 
-install(TARGETS xat_trakd
+install(TARGETS xat-trakd
   RUNTIME DESTINATION bin
 )
 
