@@ -113,8 +113,7 @@ class TrakD : Object {
 		}
 
 		// setup watch on LCM FD
-		var lcm_fd = lcm.get_fileno();
-		lcm_iochannel = new IOChannel.unix_new(lcm_fd);
+		lcm_iochannel = new IOChannel.unix_new(lcm.get_fileno());
 		lcm_iochannel.add_watch(
 			IOCondition.IN | IOCondition.ERR | IOCondition.HUP,
 			(source, condition) => {

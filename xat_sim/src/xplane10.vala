@@ -12,7 +12,6 @@ class Xplane10 : Object {
 
 	// socket watchers
 	private static IOChannel lcm_iochannel = null;
-	private static uint lcm_watch_id;
 	private static Socket socket = null;
 
 	// recv buffers
@@ -200,13 +199,14 @@ class Xplane10 : Object {
 		}
 
 		// setup watch on LCM FD
-		var lcm_fd = lcm.get_fileno();
-		lcm_iochannel = new IOChannel.unix_new(lcm_fd);
-		lcm_watch_id = lcm_iochannel.add_watch(
+		lcm_iochannel = new IOChannel.unix_new(lcm.get_fileno());
+		lcm_iochannel.add_watch(
 			IOCondition.IN | IOCondition.ERR | IOCondition.HUP,
 			(source, condition) => {
-				lcm.handle();
-				// todo error
+				if (lcm.handle() < 0) {
+					error("lcm handle failure");
+					loop.quit();
+				}
 				return true;
 			});
 

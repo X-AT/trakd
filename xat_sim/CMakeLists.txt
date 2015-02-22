@@ -28,17 +28,17 @@ include_directories(
   ${gio_INCLUDE_DIRS}
 )
 
-add_executable(xat_sim_xplane10
+add_executable(xat-sim-xplane10
   ${VALA_C}
 )
-target_link_libraries(xat_sim_xplane10
+target_link_libraries(xat-sim-xplane10
   xat_msgs
   ${LCM_LIBRARIES}
   ${gobject2_LIBRARIES}
   ${gio_LIBRARIES}
 )
 
-install(TARGETS xat_sim_xplane10
+install(TARGETS xat-sim-xplane10
   RUNTIME DESTINATION bin
 )
 
