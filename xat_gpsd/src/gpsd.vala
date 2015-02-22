@@ -81,6 +81,8 @@ class GpsD : Object {
 
 		try {
 			var opt_context = new OptionContext("");
+			opt_context.set_summary("Home gps node");
+			opt_context.set_description("This node sends GPS position of home (tracker).");
 			opt_context.set_help_enabled(true);
 			opt_context.add_main_entries(options, null);
 			opt_context.parse(ref args);

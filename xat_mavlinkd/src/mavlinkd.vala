@@ -10,7 +10,6 @@ class MavlinkD {
 
 	// socket watchers
 	private static IOChannel lcm_iochannel = null;
-	private static uint lcm_watch_id;
 
 	// main options
 	private static string? mav_url = null;
@@ -24,62 +23,74 @@ class MavlinkD {
 	};
 
 	private static void handle_heartbeat(ref Mavlink.Common.Heartbeat hb) {
-		var lhb = new xat_msgs.heartbeat_t();
+		try {
+			var lhb = new xat_msgs.heartbeat_t();
 
-		lhb.header = hb_header.next_now();
+			lhb.header = hb_header.next_now();
 
-		lcm.publish("xat/mav/heartbeat", lhb.encode());
+			lcm.publish("xat/mav/heartbeat", lhb.encode());
+		} catch (Lcm.MessageError e) {
+			error("Message Error: %s", e.message);
+		}
 	}
 
 	private static void handle_gps_raw_int(ref Mavlink.Common.GpsRawInt gps) {
-		var fix = new xat_msgs.gps_fix_t();
+		try {
+			var fix = new xat_msgs.gps_fix_t();
 
-		fix.header = fix_header.next_now();
+			fix.header = fix_header.next_now();
 
-		if (gps.fix_type < 2)
-			fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__NO_FIX;
-		else if (gps.fix_type == 2)
-			fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__2D_FIX;
-		else if (gps.fix_type > 2)
-			fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__3D_FIX;
+			if (gps.fix_type < 2)
+				fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__NO_FIX;
+			else if (gps.fix_type == 2)
+				fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__2D_FIX;
+			else if (gps.fix_type > 2)
+				fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__3D_FIX;
 
-		// required data
-		fix.satellites_visible = (int8) gps.satellites_visible;
+			// required data
+			fix.satellites_visible = (int8) gps.satellites_visible;
 
-		fix.latitude = gps.lat / 1E7;	// in degrees
-		fix.longitude = gps.lon / 1E7;
-		fix.altitude = gps.alt / 1E3f;	// meters
+			fix.latitude = gps.lat / 1E7;	// in degrees
+			fix.longitude = gps.lon / 1E7;
+			fix.altitude = gps.alt / 1E3f;	// meters
 
-		// optinal data
-		fix.eph = (gps.eph != uint16.MAX)? gps.eph / 1E2f : float.NAN;
-		fix.epv = (gps.epv != uint16.MAX)? gps.epv / 1E2f : float.NAN;
+			// optinal data
+			fix.eph = (gps.eph != uint16.MAX)? gps.eph / 1E2f : float.NAN;
+			fix.epv = (gps.epv != uint16.MAX)? gps.epv / 1E2f : float.NAN;
 
-		fix.track = (gps.cog != uint16.MAX)? gps.cog / 1E2f : float.NAN;
-		fix.ground_speed = (gps.vel != uint16.MAX)? gps.vel / 1E2f : float.NAN;
+			fix.track = (gps.cog != uint16.MAX)? gps.cog / 1E2f : float.NAN;
+			fix.ground_speed = (gps.vel != uint16.MAX)? gps.vel / 1E2f : float.NAN;
 
-		// no data
-		fix.climb_rate = float.NAN;
-		fix.satellites_used = -1;
+			// no data
+			fix.climb_rate = float.NAN;
+			fix.satellites_used = -1;
 
-		lcm.publish("xat/mav/fix", fix.encode());
+			lcm.publish("xat/mav/fix", fix.encode());
+		} catch (Lcm.MessageError e) {
+			error("Message Error: %s", e.message);
+		}
 	}
 
 	private static void handle_global_position_int(ref Mavlink.Common.GlobalPositionInt gp) {
-		var lgp = new xat_msgs.global_position_t();
+		try {
+			var lgp = new xat_msgs.global_position_t();
 
-		lgp.header = gp_header.next_now();
+			lgp.header = gp_header.next_now();
 
-		// fill message
-		lgp.latitude = gp.lat / 1E7;
-		lgp.longitude = gp.lon / 1E7;
-		lgp.altitude = gp.alt / 1E3f;
-		lgp.relative_altitude = gp.relative_alt / 1E3f;
-		lgp.velocity.x = gp.vx / 1E2f;
-		lgp.velocity.y = gp.vy / 1E2f;
-		lgp.velocity.z = gp.vz / 1E2f;
-		lgp.heading = (gp.hdg != uint16.MAX)? gp.hdg / 1E2f : float.NAN;
+			// fill message
+			lgp.latitude = gp.lat / 1E7;
+			lgp.longitude = gp.lon / 1E7;
+			lgp.altitude = gp.alt / 1E3f;
+			lgp.relative_altitude = gp.relative_alt / 1E3f;
+			lgp.velocity.x = gp.vx / 1E2f;
+			lgp.velocity.y = gp.vy / 1E2f;
+			lgp.velocity.z = gp.vz / 1E2f;
+			lgp.heading = (gp.hdg != uint16.MAX)? gp.hdg / 1E2f : float.NAN;
 
-		lcm.publish("xat/mav/global_position", lgp.encode());
+			lcm.publish("xat/mav/global_position", lgp.encode());
+		} catch (Lcm.MessageError e) {
+			error("Message Error: %s", e.message);
+		}
 	}
 
 	static construct {
@@ -96,8 +107,6 @@ class MavlinkD {
 	}
 
 	public static int main(string[] args) {
-		message("mavlinkd initializing");
-		message("Mavlink headers build date: %s", Mavlink.BUILD_DATE);
 		new MavlinkD();
 
 		// from FSO fraemwork
@@ -106,6 +115,8 @@ class MavlinkD {
 
 		try {
 			var opt_context = new OptionContext("");
+			opt_context.set_summary("Telemetry listener node");
+			opt_context.set_description("This node listen mavlink telemetry stream.");
 			opt_context.set_help_enabled(true);
 			opt_context.add_main_entries(options, null);
 			opt_context.parse(ref args);
@@ -115,6 +126,8 @@ class MavlinkD {
 			return 1;
 		}
 
+		message("mavlinkd initializing");
+		message("Mavlink headers build date: %s", Mavlink.BUILD_DATE);
 		lcm = new Lcm.LcmNode(lcm_url);
 		if (lcm == null) {
 			error("LCM connection fail.");
@@ -129,7 +142,7 @@ class MavlinkD {
 		// setup watch on LCM FD
 		var lcm_fd = lcm.get_fileno();
 		lcm_iochannel = new IOChannel.unix_new(lcm_fd);
-		lcm_watch_id = lcm_iochannel.add_watch(
+		lcm_iochannel.add_watch(
 			IOCondition.IN | IOCondition.ERR | IOCondition.HUP,
 			(source, condition) => {
 				lcm.handle();
@@ -141,8 +154,8 @@ class MavlinkD {
 		lcm.subscribe("xat/command",
 			(rbuf, channel, ud) => {
 				try {
-					var msg = new xat_msgs.command_t();
-					msg.decode(rbuf.data);
+					var msg = new xat_msgs.command_t.from_rbuf(rbuf);
+
 					if (msg.command == xat_msgs.command_t.TERMINATE_ALL) {
 						message("Requested to quit.");
 						loop.quit();
@@ -153,9 +166,7 @@ class MavlinkD {
 			});
 
 		// setup watch on mavlink source
-		unowned Source mav_source = conn.source;
-		var loop_context = loop.get_context();
-		mav_source.attach(loop_context);
+		conn.source.attach(loop.get_context());
 
 		// "subscribe" to MAV topics
 		conn.message_received.connect((msg) => {
@@ -183,6 +194,7 @@ class MavlinkD {
 				}
 			});
 
+		message("mavlinkd started.");
 		loop.run();
 		message("mavlinkd quit");
 		return 0;

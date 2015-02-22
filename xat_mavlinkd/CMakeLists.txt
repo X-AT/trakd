@@ -41,17 +41,17 @@ include_directories(
   ${MAVLINK_INCLUDE_DIR}
 )
 
-add_executable(xat_mavlinkd
+add_executable(xat-mavlinkd
   ${VALA_C}
 )
-target_link_libraries(xat_mavlinkd
+target_link_libraries(xat-mavlinkd
   xat_msgs
   ${LCM_LIBRARIES}
   ${gobject2_LIBRARIES}
   ${gio_LIBRARIES}
 )
 
-install(TARGETS xat_mavlinkd
+install(TARGETS xat-mavlinkd
   RUNTIME DESTINATION bin
 )
 
