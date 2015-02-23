@@ -11,6 +11,8 @@ pkg_check_modules(gio REQUIRED gio-2.0)
 
 include(UseVala)
 
+option(BIG_ENDIAN "Target is big-endian (MIPS router)" OFF)
+
 vala_precompile(VALA_C
   src/mavlinkd.vala
   src/mavconn.vala
@@ -40,6 +42,12 @@ include_directories(
   ${gio_INCLUDE_DIRS}
   ${MAVLINK_INCLUDE_DIR}
 )
+
+if (BIG_ENDIAN)
+  add_definitions(
+    -DNATIVE_BIG_ENDIAN
+  )
+endif()
 
 add_executable(xat-mavlinkd
   ${VALA_C}
