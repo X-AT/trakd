@@ -50,9 +50,9 @@ class MavlinkD {
 			// required data
 			fix.satellites_visible = (int8) gps.satellites_visible;
 
-			fix.latitude = gps.lat / 1E7;	// in degrees
-			fix.longitude = gps.lon / 1E7;
-			fix.altitude = gps.alt / 1E3f;	// meters
+			fix.p.latitude = gps.lat / 1E7;		// in degrees
+			fix.p.longitude = gps.lon / 1E7;
+			fix.p.altitude = gps.alt / 1E3f;	// meters
 
 			// optinal data
 			fix.eph = (gps.eph != uint16.MAX)? gps.eph / 1E2f : float.NAN;
@@ -78,9 +78,9 @@ class MavlinkD {
 			lgp.header = gp_header.next_now();
 
 			// fill message
-			lgp.latitude = gp.lat / 1E7;
-			lgp.longitude = gp.lon / 1E7;
-			lgp.altitude = gp.alt / 1E3f;
+			lgp.p.latitude = gp.lat / 1E7;
+			lgp.p.longitude = gp.lon / 1E7;
+			lgp.p.altitude = gp.alt / 1E3f;
 			lgp.relative_altitude = gp.relative_alt / 1E3f;
 			lgp.velocity.x = gp.vx / 1E2f;
 			lgp.velocity.y = gp.vy / 1E2f;
@@ -140,13 +140,14 @@ class MavlinkD {
 		conn = MavConn.IConn.open_url(mav_url);
 
 		// setup watch on LCM FD
-		var lcm_fd = lcm.get_fileno();
-		lcm_iochannel = new IOChannel.unix_new(lcm_fd);
+		lcm_iochannel = new IOChannel.unix_new(lcm.get_fileno());
 		lcm_iochannel.add_watch(
 			IOCondition.IN | IOCondition.ERR | IOCondition.HUP,
 			(source, condition) => {
-				lcm.handle();
-				// todo error
+				if (lcm.handle() < 0) {
+					error("lcm handle error");
+					loop.quit();
+				}
 				return true;
 			});
 

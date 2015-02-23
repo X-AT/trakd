@@ -14,9 +14,7 @@ struct gps_fix_t
 	int8_t satellites_visible;
 	int8_t satellites_used;
 
-	double latitude;	// in degrees
-	double longitude;
-	float altitude;		// in meters (WGS84)
+	lla_point_t p;
 	float eph;		// HDOP value
 	float epv;		// VDOP value
 	float track;		// course 0..360 deg

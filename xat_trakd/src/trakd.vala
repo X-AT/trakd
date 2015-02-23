@@ -57,9 +57,9 @@ class TrakD : Object {
 			altitude = (float) _home_alt;
 		} else {
 			// bad home fix filtered in subscriber callback
-			latitude = home_fix.latitude;
-			longitude = home_fix.longitude;
-			altitude = home_fix.altitude;
+			latitude = home_fix.p.latitude;
+			longitude = home_fix.p.longitude;
+			altitude = home_fix.p.altitude;
 		}
 	}
 
@@ -161,16 +161,16 @@ class TrakD : Object {
 
 		lcm.subscribe("xat/mav/heartbeat",
 			(rbuf, channel, ud) => {
-				//try {
-					//var hb = new xat_msgs.heartbeat_t.from_rbuf(rbuf);
+				try {
+					var hb = new xat_msgs.heartbeat_t.from_rbuf(rbuf);
 
 					if (mav_heartbeat_rtime == 0)
 						message("Got HEARTBEAT");
 
 					mav_heartbeat_rtime = get_monotonic_time();
-				//} catch (Lcm.MessageError e) {
-				//	error("Message error: %s", e.message);
-				//}
+				} catch (Lcm.MessageError e) {
+					error("Message error: %s", e.message);
+				}
 			});
 
 		lcm.subscribe("xat/mav/fix",

@@ -1,0 +1,7 @@
+package xat_msgs;
+
+struct lla_point_t {
+	double latitude;	// in degrees
+	double longitude;
+	float altitude;		// in meters (AMSL or WGS84)
+}

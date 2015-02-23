@@ -73,9 +73,9 @@ class Xplane10 : Object {
 		fix.header = fix_header.next_now();
 
 		// data from message
-		fix.latitude = (double) lat;
-		fix.longitude = (double) lon;
-		fix.altitude = alt;
+		fix.p.latitude = (double) lat;
+		fix.p.longitude = (double) lon;
+		fix.p.altitude = alt;
 
 		// sim-constants
 		fix.fix_type = xat_msgs.gps_fix_t.FIX_TYPE__3D_FIX;

@@ -13,6 +13,7 @@ lcm_add_message_files(
   FILES
   header_t.lcm
   vector_t.lcm
+  lla_point_t.lcm
   gps_fix_t.lcm
   joint_state_t.lcm
   joint_goal_t.lcm
@@ -20,6 +21,7 @@ lcm_add_message_files(
   command_t.lcm
   heartbeat_t.lcm
   global_position_t.lcm
+  nav_status_t.lcm
 )
 
 lcm_generate_messages()

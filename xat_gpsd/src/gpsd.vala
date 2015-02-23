@@ -44,9 +44,9 @@ class GpsD : Object {
 			}
 
 			// position
-			fix.latitude = gps.fix.latitude;
-			fix.longitude = gps.fix.longitude;
-			fix.altitude = (float) gps.fix.altitude;
+			fix.p.latitude = gps.fix.latitude;
+			fix.p.longitude = gps.fix.longitude;
+			fix.p.altitude = (float) gps.fix.altitude;
 
 			// DOP
 			fix.eph = (float) gps.dop.hdop;

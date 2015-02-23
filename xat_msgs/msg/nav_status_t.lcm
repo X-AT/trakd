@@ -1,0 +1,20 @@
+package xat_msgs;
+
+/**
+ * Publish navigation status for debugging. May be disabled.
+ */
+struct nav_status_t {
+	header_t header;
+
+	lla_point_t mav_p;	// last mav position
+	lla_point_t mav_est_p;	// estimated mav position
+	lla_point_t home_p;	// tracker (home) position
+
+	boolean mav_p_valid;	// flag that estimation is ok
+	float mav_heading;	// heading andle [0..360)
+	float mav_ground_speed;	// ground speed
+	float alt_diff;		// altitude difference
+
+	double azimuth;		// bearing angle
+	double elevation;	// pitch angle
+}
