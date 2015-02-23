@@ -10,11 +10,17 @@ struct nav_status_t {
 	lla_point_t mav_est_p;	// estimated mav position
 	lla_point_t home_p;	// tracker (home) position
 
+	// estimation data
 	boolean mav_p_valid;	// flag that estimation is ok
 	float mav_heading;	// heading andle [0..360)
 	float mav_ground_speed;	// ground speed
+
+	// int results
+	double distance;	// distance to mav [m]
+	double bearing;		// bearing [rad]
 	float alt_diff;		// altitude difference
 
+	// results
 	double azimuth;		// bearing angle
 	double elevation;	// pitch angle
 }

@@ -7,7 +7,7 @@ class TrakD : Object {
 
 	private static xat_msgs.HeaderFiller goal_header;
 	private static xat_msgs.HeaderFiller cmd_header;
-	private static xat_msgs.HeaderFiller ts_header;
+	private static xat_msgs.HeaderFiller ns_header;
 
 	// socket watchers
 	private static IOChannel lcm_iochannel = null;
@@ -63,16 +63,62 @@ class TrakD : Object {
 		}
 	}
 
+	/**
+	 * Returns last received MAV position, if it not timedout
+	 */
 	private static bool get_mav_position(out double latitude, out double longitude, out float altitude) {
+		var fix_valid = !is_mav_timedout(mav_fix_rtime);
+		var gp_valid = !is_mav_timedout(mav_global_position_rtime);
+
+		unowned xat_msgs.lla_point_t? p = null;
+
+		if (gp_valid) {
+			p = mav_global_position.p;
+		} else if (fix_valid) {
+			p = mav_fix.p;
+		}
+
+		if (p != null) {
+			latitude = p.latitude;
+			longitude = p.longitude;
+			altitude = p.altitude;
+		}
+
+		return p != null;
+	}
+
+	private static bool timer_update_goal() {
+
+		// XXX not just publish nav data
+
+		var ns = new xat_msgs.nav_status_t();
+
+		ns.header = ns_header.next_now();
+
+		get_tracker_position(out ns.home_p.latitude, out ns.home_p.longitude, out ns.home_p.altitude);
+		var valid = get_mav_position(out ns.mav_p.latitude, out ns.mav_p.longitude, out ns.mav_p.altitude);
+
+		// XXX TODO estimate position
+		ns.mav_p_valid = valid;
+		ns.mav_est_p = ns.mav_p;
+
+		// do nothing it mav position unknown
+		if (valid) {
+			ns.distance = Geo.get_distance(ns.home_p.latitude, ns.home_p.longitude, ns.mav_est_p.latitude, ns.mav_est_p.longitude);
+			ns.bearing = Geo.get_bearing(ns.home_p.latitude, ns.home_p.longitude, ns.mav_est_p.latitude, ns.mav_est_p.longitude);
+		}
+
 		// XXX TODO
-		return false;
+
+		lcm.publish("xat/nav_status", ns.encode());
+		return true;
 	}
 
 	static construct {
 		loop = new MainLoop();
 		goal_header = new xat_msgs.HeaderFiller();
 		cmd_header = new xat_msgs.HeaderFiller();
-		ts_header = new xat_msgs.HeaderFiller();
+		ns_header = new xat_msgs.HeaderFiller();
 	}
 
 	private static void sighandler(int signum) {
@@ -209,6 +255,8 @@ class TrakD : Object {
 				}
 			});
 
+		// start update task at 10 Hz
+		Timeout.add(100, timer_update_goal);
 
 		message("trakd started.");
 		loop.run();
