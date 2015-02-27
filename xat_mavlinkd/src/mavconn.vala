@@ -8,7 +8,7 @@ namespace MavConn {
 
 		public signal void message_received(ref Mavlink.Message msg);
 
-		public static IConn? open_url(string url) {
+		public static IConn? open_url(string url) throws Error {
 			var proto = GLib.Uri.parse_scheme(url);
 
 			switch (proto) {
@@ -53,13 +53,13 @@ namespace MavConn {
 			this.with_sockaddr(bind_addr?? new InetSocketAddress(new InetAddress.any(SocketFamily.IPV4), 14550));
 		}
 
-		public UDPConn.with_sockaddr(InetSocketAddress bind_addr) {
+		public UDPConn.with_sockaddr(InetSocketAddress bind_addr) throws Error {
 			message(@"UDP bind: $(bind_addr.address):$(bind_addr.port)");
 
 			socket = new Socket(bind_addr.address.family, SocketType.DATAGRAM, SocketProtocol.UDP);
 			socket.bind(bind_addr, true);
 
-			source_ = socket.create_source(IOCondition.IN);
+			source_ = socket.create_source(IOCondition.IN | IOCondition.ERR | IOCondition.HUP);
 			source_.set_callback((s, cond) => {
 					try {
 						uint8 buffer[1024];
@@ -86,7 +86,7 @@ namespace MavConn {
 				});
 		}
 
-		public UDPConn.from_url(string url) {
+		public UDPConn.from_url(string url) throws Error {
 			var proto = GLib.Uri.parse_scheme(url);
 			assert(proto == "udp");
 
@@ -130,7 +130,7 @@ namespace MavConn {
 			this.with_sockaddr(server_addr?? new InetSocketAddress(new InetAddress.loopback(SocketFamily.IPV4), 5760));
 		}
 
-		public TCPClientConn.with_sockaddr(InetSocketAddress server_addr) {
+		public TCPClientConn.with_sockaddr(InetSocketAddress server_addr) throws Error {
 			message(@"TCP server: $(server_addr.address):$(server_addr.port)");
 
 			client = new SocketClient();
@@ -139,7 +139,7 @@ namespace MavConn {
 			message("TCP: connected to server.");
 
 			// maybe better to use async methods from SocketConnection?
-			source_ = conn.socket.create_source(IOCondition.IN);
+			source_ = conn.socket.create_source(IOCondition.IN | IOCondition.ERR | IOCondition.HUP);
 			source_.set_callback((s, cond) => {
 					try {
 						uint8 buffer[1024];
@@ -160,7 +160,7 @@ namespace MavConn {
 				});
 		}
 
-		public TCPClientConn.from_url(string url) {
+		public TCPClientConn.from_url(string url) throws Error {
 			var proto = GLib.Uri.parse_scheme(url);
 			assert(proto == "tcp");
 

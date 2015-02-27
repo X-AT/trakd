@@ -8,6 +8,8 @@ class MavlinkD {
 	private static xat_msgs.HeaderFiller fix_header;
 	private static xat_msgs.HeaderFiller gp_header;
 
+	private static bool hb_received = false;
+
 	// socket watchers
 	private static IOChannel lcm_iochannel = null;
 
@@ -27,6 +29,11 @@ class MavlinkD {
 			var lhb = new xat_msgs.heartbeat_t();
 
 			lhb.header = hb_header.next_now();
+
+			if (!hb_received) {
+				hb_received = true;
+				message("Got HEARTBEAT.");
+			}
 
 			lcm.publish("xat/mav/heartbeat", lhb.encode());
 		} catch (Lcm.MessageError e) {
@@ -137,7 +144,12 @@ class MavlinkD {
 		}
 
 		// connect to MAV
-		conn = MavConn.IConn.open_url(mav_url);
+		try {
+			conn = MavConn.IConn.open_url(mav_url);
+		} catch (Error e) {
+			critical("MAV Connection: %s", e.message);
+			return 1;
+		}
 
 		// setup watch on LCM FD
 		lcm_iochannel = new IOChannel.unix_new(lcm.get_fileno());
