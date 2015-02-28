@@ -19,6 +19,8 @@ struct nav_status_t {
 	double distance;	// distance to mav [m]
 	double bearing;		// bearing [rad]
 	float alt_diff;		// altitude difference
+	double bearing_deg;
+	double elevation_deg;
 
 	// results
 	double azimuth;		// bearing angle
